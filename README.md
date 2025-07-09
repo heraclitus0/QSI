@@ -13,7 +13,7 @@ SECTION 1 — FEATURES
 
 - Upload real-world data via Excel or CSV
 - Auto-calculate drift, memory state, and adaptive threshold
-- Detect rupture events where ∆(t) > Θ(t)
+- Detect rupture events where drift exceeds adaptive threshold
 - Quantify preventable loss in monetary terms
 - Visual diagnostics and downloadable output
 
@@ -79,9 +79,9 @@ These can be exposed to UI sliders or presets.
 SECTION 7 — OUTPUTS
 ---------------------------------------------------------
 
-- Delta(t): instantaneous drift
-- E(t): cumulative epistemic misalignment
-- Theta(t): rupture threshold over time
+- Drift: difference between forecast and actual
+- Memory: error accumulation over time
+- Adaptive Threshold: system rupture sensitivity
 - Rupture Table: dates and loss amounts
 - Plot: Drift vs Threshold (with rupture flags)
 - Total preventable monetary loss
