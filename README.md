@@ -12,7 +12,7 @@ SECTION 1 — FEATURES
 ---------------------------------------------------------
 
 - Upload real-world data via Excel or CSV
-- Auto-calculate drift: Delta(t), E(t), Theta(t)
+- Auto-calculate drift, memory state, and adaptive threshold
 - Detect rupture events where ∆(t) > Θ(t)
 - Quantify preventable loss in monetary terms
 - Visual diagnostics and downloadable output
@@ -36,7 +36,7 @@ SECTION 3 — FILE STRUCTURE
 
     rupture_detector/
     ├── app.py            # Streamlit interface
-    ├── rupture.py        # Core logic (RCC silently embedded)
+    ├── rupture.py        # Core logic 
     ├── requirements.txt  # Dependency list
 
 ---------------------------------------------------------
