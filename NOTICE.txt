@@ -1,0 +1,24 @@
+NOTICE
+
+This software project, titled "Rupture Detector", was developed and released by Pulikanti Sashi Bharadwaj under the MIT License.
+
+The repository contains an independently engineered rupture detection system based on statistical drift metrics, recursive memory, and threshold adaptation. While the system draws abstract influence from control theory and feedback logic, it does **not** include or implement any formally published epistemic calculus or symbolic system.
+
+In particular:
+
+- This codebase **does not** contain, encode, or directly apply constructs from Recursion Control Calculus (RCC) or Continuity Theory (CT),
+- No symbolic signatures (e.g., V(t), Δ(t), Θ(t)) are present in any computation,
+- No part of RCC/CT source material or formal theorems are represented in this implementation,
+- The logic was designed independently and stands alone as a general-purpose analytical tool.
+
+### Conceptual Analogy:
+This system may use recursive drift accumulation and adaptive thresholds, much like neural networks use slope information for gradient descent. However, just as using slope does **not** imply embedding calculus itself, the use of adaptive rupture logic here does **not** imply inclusion of RCC or any formal epistemic calculus.
+
+Any future extensions or integrations that do reference RCC or CT will be explicitly authored and published in appropriate venues by Pulikanti Sashi Bharadwaj.
+
+For independent RCC/CT publications, please refer to:
+- ORCID: https://orcid.org/0009-0002-8904-2209
+- RCC DOI: https://doi.org/10.5281/zenodo.15730197
+- CT DOI: https://doi.org/10.5281/zenodo.15720763
+
+© 2025 Pulikanti Sashi Bharadwaj. All rights reserved.
