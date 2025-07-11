@@ -130,9 +130,6 @@ This is a complete, audit-ready, professional-grade rupture monitoring solution.
 
 **Bharadwaj** — 2025
 
-- Architect of the control logic, system design, and philosophical model
-- Reach: Available via repo, documentation, and future extensions
-
 ---
 
 ## End of Project Summary
