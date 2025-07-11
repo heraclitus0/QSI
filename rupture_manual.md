@@ -26,7 +26,7 @@ Date, Forecast, Actual, Unit_Cost
 - **Actual**: What was executed or measured
 - **Unit\_Cost**: Value of deviation per unit (₹ or \$)
 
-### Dummy Mode (Optional)
+### Dummy Mode
 
 If you want to test the system, activate “Use Dummy Data” to auto-generate inputs.
 
