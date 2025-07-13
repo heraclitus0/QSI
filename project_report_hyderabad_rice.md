@@ -44,6 +44,7 @@ To detect forecast rupture, quantify economic loss, and use this intelligence to
 - **Avg Threshold:** 87.36 kg  
 - **Total Estimated Loss:** ₹75,055.63  
 - **Max Daily Loss:** ₹10,791.66 on June 22, 2025
+- ![Rupture Visualization](rup_sup_plot.png)
 
 ---
 
