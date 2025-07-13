@@ -85,6 +85,7 @@ SECTION 7 — OUTPUTS
 - Rupture Table: dates and loss amounts
 - Plot: Drift vs Threshold (with rupture flags)
 - Total preventable monetary loss
+- ![Rupture Visualization](rup_sup_plot.png)
 
 ---------------------------------------------------------
 SECTION 8 — DEPLOYMENT OPTIONS
