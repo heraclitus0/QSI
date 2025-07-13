@@ -15,7 +15,7 @@ def generate_dummy(days: int = 30, seed: int = 42, unit_cost: float = 40.0) -> p
         "Unit_Cost": cost
     })
 
-def compute_drift_thresholds(df: pd.DataFrame, c: float, a: float, base_threshold: float, noise_level: float, seed: int = 0):
+def compute_rcc(df: pd.DataFrame, c: float, a: float, base_threshold: float, noise_level: float, seed: int = 0):
     """Compute drift scores, adaptive thresholds, rupture points, and preventable loss."""
     rng = np.random.default_rng(seed)
     df = df.copy().sort_values("Date").reset_index(drop=True)
@@ -40,8 +40,8 @@ def compute_drift_thresholds(df: pd.DataFrame, c: float, a: float, base_threshol
         accumulated_drift[i] = drift_memory
 
     df["Delta"] = drift
-    df["DriftMemory"] = accumulated_drift
-    df["Threshold"] = adaptive_threshold
+    df["E(t)"] = accumulated_drift
+    df["Theta(t)"] = adaptive_threshold
     df["Rupture"] = rupture
     df["Loss"] = loss
 
