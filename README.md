@@ -171,5 +171,6 @@ SECTION 13 — FIELD IMPLEMENTATION
 ---------------------------------------------------------
 
 📄 [Read full case study](project_report_hyderabad_rice.md)
+📄 [Read full RCC report](RCC_Field_Implementation_Report.md)
 
 
