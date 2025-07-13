@@ -12,8 +12,8 @@ SECTION 1 — FEATURES
 ---------------------------------------------------------
 
 - Upload real-world data via Excel or CSV
-- Auto-calculate drift, memory state, and adaptive threshold
-- Detect rupture events where drift exceeds adaptive threshold
+- Auto-calculate drift: Delta(t), E(t), Theta(t)
+- Detect rupture events where ∆(t) > Θ(t)
 - Quantify preventable loss in monetary terms
 - Visual diagnostics and downloadable output
 
@@ -36,7 +36,7 @@ SECTION 3 — FILE STRUCTURE
 
     rupture_detector/
     ├── app.py            # Streamlit interface
-    ├── rupture.py        # Core logic 
+    ├── rupture.py        # Core logic (RCC silently embedded)
     ├── requirements.txt  # Dependency list
 
 ---------------------------------------------------------
@@ -79,9 +79,9 @@ These can be exposed to UI sliders or presets.
 SECTION 7 — OUTPUTS
 ---------------------------------------------------------
 
-- Drift: difference between forecast and actual
-- Memory: error accumulation over time
-- Adaptive Threshold: system rupture sensitivity
+- Delta(t): instantaneous drift
+- E(t): cumulative epistemic misalignment
+- Theta(t): rupture threshold over time
 - Rupture Table: dates and loss amounts
 - Plot: Drift vs Threshold (with rupture flags)
 - Total preventable monetary loss
@@ -121,31 +121,15 @@ Built by Pulikanti Sashi Bharadwaj
 
 Contact: bharadwajpulikanti11@gmail.com
 ---------------------------------------------------------
-SECTION 12 — THEORETICAL INFLUENCES
+SECTION 12 — THEORETICAL FOUNDATION
 ---------------------------------------------------------
 
-The rupture detection framework implemented in this tool is influenced by a broad spectrum of concepts drawn from control theory, signal processing, and system feedback analysis. Its logic draws inspiration from:
+This tool is grounded in the principles of the **Recursion Control Calculus (RCC)** — a formal framework for regulating epistemic misalignment in volatile environments.
 
-Recursive filtering methods for state estimation under uncertainty (e.g., Kalman, 1960)
+RCC introduces symbolic memory (`V(t)`), distortion (`∆(t)`), and adaptive rupture thresholds (`Θ(t)`) to track misalignment between internal projections and emergent reality — enabling early detection of systemic drift.
 
-Feedback control systems and dynamic threshold adaptation (Åström & Murray, 2008)
+For the complete mathematical formulation, see:
 
-Second-order cybernetics, particularly self-regulating and autopoietic feedback structures (von Foerster, 2003; Maturana & Varela, 1980)
+Pulikanti, S.B. (2025). *Recursion Control Calculus: A Formal Epistemic Control System for Drift Regulation under Stochastic Volatility*. Zenodo.  
+[https://doi.org/10.5281/zenodo.15730197](https://doi.org/10.5281/zenodo.15730197)
 
-Symbolic logic and recursion theory, useful for interpretive modeling and deviation analysis (Soare, 1996; Odifreddi, 1992)
-
-The approach adopted emphasizes the detection of significant divergence between system expectations and live observations, using adaptive thresholding mechanisms and accumulated drift analysis. While grounded in practical system design, the logic accommodates both numerical volatility and symbolic disruption, aiming to flag high-risk discontinuities before systemic failure.
-
-Key references include:
-
-Kalman, R. E. (1960). A new approach to linear filtering and prediction problems. IEEE Transactions on Automatic Control. https://doi.org/10.1109/TAC.1960.1107752
-
-Åström, K. J., & Murray, R. M. (2008). Feedback Systems: An Introduction for Scientists and Engineers. https://fbswiki.org
-
-von Foerster, H. (2003). Understanding Understanding: Essays on Cybernetics and Cognition. https://doi.org/10.1007/978-1-4615-5889-1
-
-Maturana, H. R., & Varela, F. J. (1980). Autopoiesis and Cognition: The Realization of the Living. https://doi.org/10.1007/978-94-009-8947-4
-
-Soare, R. I. (1996). Computability and Recursion. Theoretical Computer Science. https://doi.org/10.1016/0890-5401(96)90015-7
-
-Odifreddi, P. (1992). Classical Recursion Theory. https://doi.org/10.1007/978-3-642-58127-0
