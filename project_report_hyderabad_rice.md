@@ -72,8 +72,6 @@ Using detected rupture patterns, the restaurant chain was bridged with a vetted 
 - **Volume estimates** aligned with urban restaurant operations  
 - **Drift-to-rupture logic** was cross-validated against operational benchmarks
 
-**Conclusion:** The narrative survives scrutiny and is grounded in verifiable economic reality.
-
 ---
 
 ## 9. Conclusion
