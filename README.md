@@ -165,4 +165,4 @@ https://doi.org/10.1007/978-3-642-58127-0
 Pulikanti, S.B. (2025). Recursion Control Calculus: A Formal Epistemic Control System for Drift Regulation under Stochastic Volatility. Zenodo.
 https://doi.org/10.5281/zenodo.15730197
 
-By grounding implementation in these theoretical lineages, the system gains the capacity to regulate in uncertain conditions—not merely reacting to change, but sensing when internal framing is itself becoming obsolete.
+By grounding implementation in these theoretical lineages, the system enables the capacity for agency in uncertain conditions—not merely reacting to change, but sensing when internal framing is itself becoming obsolete.
