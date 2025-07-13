@@ -166,3 +166,10 @@ Pulikanti, S.B. (2025). Recursion Control Calculus: A Formal Epistemic Control S
 https://doi.org/10.5281/zenodo.15730197
 
 By grounding implementation in these theoretical lineages, the system enables the capacity for agency in uncertain conditions—not merely reacting to change, but sensing when internal framing is itself becoming obsolete.
+---------------------------------------------------------
+SECTION 13 — FIELD IMPLEMENTATION
+---------------------------------------------------------
+
+📄 [Read full case study](project_report_hyderabad_rice.md)
+
+
