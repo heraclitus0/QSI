@@ -36,7 +36,7 @@ SECTION 3 — FILE STRUCTURE
 
     rupture_detector/
     ├── app.py            # Streamlit interface
-    ├── rupture.py        # Core logic (RCC silently embedded)
+    ├── rupture.py        # Core logic
     ├── requirements.txt  # Dependency list
 
 ---------------------------------------------------------
