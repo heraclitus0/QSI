@@ -8,7 +8,7 @@
 
 ## 1. Introduction
 
-This project documents the application of Nexai’s Rupture Detector to resolve planning volatility and procurement loss in a Hyderabad-based restaurant chain sourcing Sona Masoori rice. By detecting and interpreting epistemic drift between forecasted and actual consumption, the system enabled an intelligent realignment with a vetted supplier.
+This project documents the application of Rupture Detector to resolve planning volatility and procurement loss in a Hyderabad-based restaurant chain sourcing Sona Masoori rice. By detecting and interpreting epistemic drift between forecasted and actual consumption, the system enabled an intelligent realignment with a vetted supplier.
 
 ---
 
@@ -20,7 +20,7 @@ To detect forecast rupture, quantify economic loss, and use this intelligence to
 
 ## 3. Methodology
 
-**Tools Used:** Nexai’s RCC-based Rupture Detector  
+**Tools Used:** RCC-based Rupture Detector  
 **Inputs:** Forecast (kg), Actual (kg), Unit Cost (₹/kg)  
 **Logic:** Drift calculated daily; rupture triggered when drift exceeded adaptive threshold Theta (based on memory + noise). Loss calculated as `Drift × Unit Cost`.
 
