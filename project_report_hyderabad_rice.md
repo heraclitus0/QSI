@@ -1,5 +1,5 @@
 
-# Final Project Report
+# Project Report
 
 ## Epistemic Rupture Detection and Control in Restaurant-Grade Rice Procurement  
 **Hyderabad, May–June 2025**
