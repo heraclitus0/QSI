@@ -124,12 +124,45 @@ Contact: bharadwajpulikanti11@gmail.com
 SECTION 12 — THEORETICAL FOUNDATION
 ---------------------------------------------------------
 
-This tool is grounded in the principles of the **Recursion Control Calculus (RCC)** — a formal framework for regulating epistemic misalignment in volatile environments.
+This system operates at the intersection of control theory, recursive computation, epistemic systems design, and second-order cybernetics. It is not built on a single framework but draws from a distributed body of knowledge that spans the regulation of feedback, adaptation to uncertainty, and recursive self-awareness in intelligent systems.
 
-RCC introduces symbolic memory (`V(t)`), distortion (`∆(t)`), and adaptive rupture thresholds (`Θ(t)`) to track misalignment between internal projections and emergent reality — enabling early detection of systemic drift.
+At its foundation are concepts such as:
 
-For the complete mathematical formulation, see:
+Dynamic feedback regulation (Kalman, Åström & Murray)
 
-Pulikanti, S.B. (2025). *Recursion Control Calculus: A Formal Epistemic Control System for Drift Regulation under Stochastic Volatility*. Zenodo.  
-[https://doi.org/10.5281/zenodo.15730197](https://doi.org/10.5281/zenodo.15730197)
+Recursive structure and computability (Soare, Odifreddi)
 
+Second-order observation and autopoietic closure (von Foerster, Maturana & Varela)
+
+Distortion tracking and rupture thresholds (Pulikanti)
+
+These traditions converge around the problem of how systems perceive, model, and act upon discrepancies between expectation and reality—whether through signal filtering, logical recursion, or epistemic correction loops.
+
+One such formulation embedded here is a symbolic control structure that employs variables for memory, distortion, and rupture—used to estimate when operational drift exceeds a tolerable threshold. This allows the system to shift from predictive to adaptive behavior under stochastic volatility.
+
+This implementation does not rely solely on statistical forecasting or static rule sets but blends cybernetic sensing, recursive reasoning, and formal thresholding. It treats intelligence as an ongoing negotiation between internal models and emergent realities.
+
+For select theoretical references:
+
+Kalman, R. E. (1960). A new approach to linear filtering and prediction problems. IEEE Transactions on Automatic Control.
+https://doi.org/10.1109/TAC.1960.1107752
+
+Åström, K. J., & Murray, R. M. (2008). Feedback Systems: An Introduction for Scientists and Engineers.
+https://fbswiki.org
+
+von Foerster, H. (2003). Understanding Understanding: Essays on Cybernetics and Cognition.
+https://doi.org/10.1007/978-1-4615-5889-1
+
+Maturana, H. R., & Varela, F. J. (1980). Autopoiesis and Cognition: The Realization of the Living.
+https://doi.org/10.1007/978-94-009-8947-4
+
+Soare, R. I. (1996). Computability and Recursion. Theoretical Computer Science.
+https://doi.org/10.1016/0890-5401(96)90015-7
+
+Odifreddi, P. (1992). Classical Recursion Theory.
+https://doi.org/10.1007/978-3-642-58127-0
+
+Pulikanti, S.B. (2025). Recursion Control Calculus: A Formal Epistemic Control System for Drift Regulation under Stochastic Volatility. Zenodo.
+https://doi.org/10.5281/zenodo.15730197
+
+By grounding implementation in these theoretical lineages, the system gains the capacity to regulate in uncertain conditions—not merely reacting to change, but sensing when its internal framing is itself becoming obsolete.
