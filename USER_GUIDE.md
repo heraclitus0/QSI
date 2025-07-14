@@ -1,5 +1,5 @@
 
-# USER GUIDE – Rupture Detector (Generalized Drift Detection System)
+# USER GUIDE – Rupture Detector
 
 ## 1. Overview
 Rupture Detector is a domain-agnostic operational intelligence tool designed to detect forecast-actual drifts and surface preventable loss in real-world systems. It is applicable to any measurable quantity where planned values (forecasts) often diverge from realized outcomes (actuals), converting these deviations into actionable economic insights.
