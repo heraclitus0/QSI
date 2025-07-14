@@ -10,7 +10,6 @@ This tool detects misalignments between forecasted and actual demand. It identif
 
 **Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
 
-The guide includes setup instructions, data formatting guidelines, parameter explanations, output interpretations, and field deployment notes for domain-agnostic use.
 ---------------------------------------------------------
 SECTION 1 — FEATURES
 ---------------------------------------------------------
