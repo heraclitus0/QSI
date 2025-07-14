@@ -30,7 +30,10 @@ Install the required packages:
 
     pip install -r requirements.txt
 
-    📖 **Detailed User Guide:** [USER_GUIDE.md](./USER_GUIDE.md)
+📖 **Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
+
+The guide includes setup instructions, data formatting guidelines, parameter explanations, output interpretations, and field deployment notes for domain-agnostic use.
+
 
 ---------------------------------------------------------
 SECTION 3 — FILE STRUCTURE
