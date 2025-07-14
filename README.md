@@ -7,6 +7,9 @@ Forecast Drift Monitoring & Preventable Loss Detection for Supply Chains
 
 This tool detects misalignments between forecasted and actual demand. It identifies rupture points where deviation becomes costly and suggests corrective resets. The system quantifies preventable monetary loss using real-time thresholds and memory-aware state tracking.
 
+**Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
+
+The guide includes setup instructions, data formatting guidelines, parameter explanations, output interpretations, and field deployment notes for domain-agnostic use.
 ---------------------------------------------------------
 SECTION 1 — FEATURES
 ---------------------------------------------------------
@@ -29,10 +32,6 @@ Create and activate a virtual environment:
 Install the required packages:
 
     pip install -r requirements.txt
-
-**Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
-
-The guide includes setup instructions, data formatting guidelines, parameter explanations, output interpretations, and field deployment notes for domain-agnostic use.
 
 
 ---------------------------------------------------------
