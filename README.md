@@ -173,4 +173,6 @@ SECTION 13 — FIELD IMPLEMENTATION
 
 📄 [Read full case study](project_report_hyderabad_rice.md)
 
+© 2025 Pulikanti Sashi Bharadwaj. All rights reserved under the open-source license.
+
 
