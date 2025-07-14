@@ -30,7 +30,7 @@ Install the required packages:
 
     pip install -r requirements.txt
 
-📖 **Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
+**Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
 
 The guide includes setup instructions, data formatting guidelines, parameter explanations, output interpretations, and field deployment notes for domain-agnostic use.
 
@@ -176,7 +176,7 @@ By grounding implementation in these theoretical lineages, the system enables th
 SECTION 13 — FIELD IMPLEMENTATION
 ---------------------------------------------------------
 
-📄 **Example Field Deployment:**  
+**Example Field Deployment:**  
 [Read full deployment instance — Rice Supply Chain (Hyderabad)](project_report_hyderabad_rice.md)
 
 © 2025 Pulikanti Sashi Bharadwaj. All rights reserved under the open-source license.
