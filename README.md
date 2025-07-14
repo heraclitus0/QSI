@@ -30,6 +30,8 @@ Install the required packages:
 
     pip install -r requirements.txt
 
+    📖 **Detailed User Guide:** [USER_GUIDE.md](./USER_GUIDE.md)
+
 ---------------------------------------------------------
 SECTION 3 — FILE STRUCTURE
 ---------------------------------------------------------
@@ -171,7 +173,8 @@ By grounding implementation in these theoretical lineages, the system enables th
 SECTION 13 — FIELD IMPLEMENTATION
 ---------------------------------------------------------
 
-📄 [Read full case study](project_report_hyderabad_rice.md)
+📄 **Example Field Deployment:**  
+[Read full deployment instance — Rice Supply Chain (Hyderabad)](project_report_hyderabad_rice.md)
 
 © 2025 Pulikanti Sashi Bharadwaj. All rights reserved under the open-source license.
 
