@@ -82,6 +82,7 @@ Modern procurement chains face hidden **forecast-to-actual divergences**, especi
 | Price-Distortion Impact | –8.3% unit cost, +2.5× drift during policy period |
 
 ✅ High volatility days aligned with **policy incentives and ration dumps**.
+- ![Rupture Visualization](rup_sup_plot.png)
 
 ---
 
