@@ -20,9 +20,9 @@ The Rupture Detector is designed to identify significant deviations between **Fo
 
 **Modules Used:**
 
-- `` – Dummy data generation.
-- `` – Core rupture detection engine.
-- `` – Statistical smoothing layer.
+- Dummy data generation.
+- Core rupture detection engine.
+- Statistical smoothing layer.
 
 ---
 
