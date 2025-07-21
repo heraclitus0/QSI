@@ -37,12 +37,22 @@ Install the required packages:
 ---------------------------------------------------------
 SECTION 3 — FILE STRUCTURE
 ---------------------------------------------------------
-
-    rupture_detector/
-    ├── app.py            # Streamlit interface
-    ├── rupture.py        # Core logic
-    ├── requirements.txt  # Dependency list
-
+├── rupture.py                      # Core rupture detection logic
+├── app.py                          # Streamlit web app
+├── tests/                          # Unit tests
+├── datasets/
+│   ├── Sample_Supply_Chain_Data.csv # Sample huristic data
+│   ├── Sample_rupture_log.csv # Sample huristic rupture data
+│   ├── hyderabad_saffron_rice_supply_may_june.csv  # Real deployment data
+│   └── hyderabad_saffron_rice_supply_may_june_rupture_log.csv
+├── graphs/                         # All field-level analytical visuals
+├── USER_GUIDE.md                   # Complete operational deployment guide
+├── rupture_code_logic_doc.md       # Technical code breakdown
+├── rupture_detector_case_study.md  # Applied field deployment case study
+├── rupture_detector_project_report.md  # Comprehensive project report
+├── validation_report.md            # Validation methodology & checks
+├── requirements.txt
+└── LICENSE.txt                     # MIT License
 ---------------------------------------------------------
 SECTION 4 — DATA FORMAT
 ---------------------------------------------------------
