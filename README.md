@@ -37,22 +37,26 @@ Install the required packages:
 ---------------------------------------------------------
 SECTION 3 — FILE STRUCTURE
 ---------------------------------------------------------
-├── rupture.py                      # Core rupture detection logic
-├── app.py                          # Streamlit web app
-├── tests/                          # Unit tests
-├── datasets/
-│   ├── Sample_Supply_Chain_Data.csv # Sample huristic data
-│   ├── Sample_rupture_log.csv # Sample huristic rupture data
-│   ├── hyderabad_saffron_rice_supply_may_june.csv  # Real deployment data
-│   └── hyderabad_saffron_rice_supply_may_june_rupture_log.csv
-├── graphs/                         # All field-level analytical visuals
-├── USER_GUIDE.md                   # Complete operational deployment guide
-├── rupture_code_logic_doc.md       # Technical code breakdown
-├── rupture_detector_case_study.md  # Applied field deployment case study
-├── rupture_detector_project_report.md  # Comprehensive project report
-├── validation_report.md            # Validation methodology & checks
-├── requirements.txt
-└── LICENSE.txt                     # MIT License
+
+├── rupture.py                              # Core rupture detection logic
+├── app.py                                  # Streamlit frontend application
+├── tests/                                  # Unit testing suite
+│   └── test_rupture_detector.py            # Validation of drift detection logic
+├── datasets/                               # All input datasets
+│   ├── Sample_Supply_Chain_Data.csv        # Sample heuristic supply chain data
+│   ├── Sample_rupture_log.csv              # Sample heuristic rupture log
+│   ├── hyderabad_saffron_rice_supply_may_june.csv         # Real franchise procurement data
+│   └── hyderabad_saffron_rice_supply_may_june_rupture_log.csv   # Rupture detection logs (real deployment)
+├── graphs/                                 # Visualizations (plots, diagrams)
+│   └── rup_sup_plot.png                    # Drift vs threshold supply graph (sample)
+├── USER_GUIDE.md                           # Step-by-step operational deployment guide
+├── rupture_code_logic_doc.md               # Detailed code logic explanation
+├── rupture_detector_case_study.md          # Applied case study from field deployment
+├── rupture_detector_project_report.md      # Full strategic project report
+├── validation_report.md                    # Model and logic validation report
+├── requirements.txt                        # Python dependencies
+└── LICENSE.txt                             # MIT License declaration
+
 ---------------------------------------------------------
 SECTION 4 — DATA FORMAT
 ---------------------------------------------------------
