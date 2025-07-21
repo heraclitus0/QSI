@@ -1,4 +1,4 @@
-# 📄 Code Logic Document: Rupture Detector System
+# Code Logic Document: Rupture Detector System
 
 ## 1. System Overview
 
