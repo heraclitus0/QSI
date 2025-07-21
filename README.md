@@ -194,7 +194,7 @@ SECTION 13 — FIELD IMPLEMENTATION
 ---------------------------------------------------------
 
 **Example Field Deployment:**  
-[Read full deployment instance — Rice Supply Chain (Hyderabad)](project_report_hyderabad_rice.md)
+[Read full deployment instance — Rice Supply Chain (Hyderabad)](rupture_detector_project_report.md)
 
 © 2025 Pulikanti Sashi Bharadwaj. All rights reserved under the open-source license.
 
