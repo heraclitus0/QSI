@@ -109,11 +109,11 @@ Statistical tests applied:
 
 ## 10. Strategic Business Impact Framework
 
-✅ ₹-linked **daily drift-to-loss visibility**
-✅ **Ration cycle protection** for restaurant chains
-✅ Scalable to **non-rice commodities** (vegetable, dairy)
-✅ Aligned with **managerial operational KPIs**
-✅ Validated via **hard operational data + macro-market context**
+₹-linked **daily drift-to-loss visibility**
+**Ration cycle protection** for restaurant chains
+Scalable to **non-rice commodities** (vegetable, dairy)
+Aligned with **managerial operational KPIs**
+Validated via **hard operational data + macro-market context**
 
 ---
 
