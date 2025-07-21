@@ -130,7 +130,6 @@ Rupture Detector **materializes board-level cost governance via ground-level ope
 - **Policy Signals**: [Deccan Chronicle](https://www.deccanchronicle.com/), [RiceNewsToday](https://ricenewstoday.com/)
 - **Academic Parallels**: Pareto clustering (71/20), Bullwhip amplification, Demand decoupling via social rhythms
 
-✅ **Audit Ready**, **Board-Usable**, **Investor-Credible**, **Field-Deployable**.
 
 ---
 
