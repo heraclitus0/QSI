@@ -73,6 +73,7 @@ Statistical tests applied:
 | Daily Rupture Impact | ₹506/day avoidable cost leakage |
 | Max Single-Day Drift | 74 kg/day, flagged correctly during bonus period |
 | High-Drift Periods | Weekends + Policy Days cumulatively explain 81% of drift cost |
+- ![Rupture Visualization](rup_sup_plot.png)
 
 ---
 
