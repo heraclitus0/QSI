@@ -49,7 +49,9 @@ SECTION 3 — FILE STRUCTURE
 │   ├── hyderabad_saffron_rice_supply_may_june.csv         # Real franchise procurement data
 │   └── hyderabad_saffron_rice_supply_may_june_rupture_log.csv   # Rupture detection logs (real deployment)
 ├── graphs/                                 # Visualizations (plots, diagrams)
-│   └── rup_sup_plot.png                    # Drift vs threshold supply graph (sample)
+│   ├── rup_sup_plot.png                    # Drift vs threshold supply graph (sample)
+│   ├── boxplot_policy_vs_nonpolicy.png    # Drift distribution under policy vs non-policy period
+│   └── boxplot_weekday_vs_weekend.png     # Drift distribution comparing weekdays and weekends
 ├── USER_GUIDE.md                           # Step-by-step operational deployment guide
 ├── rupture_code_logic_doc.md               # Detailed code logic explanation
 ├── rupture_detector_case_study.md          # Applied case study from field deployment
