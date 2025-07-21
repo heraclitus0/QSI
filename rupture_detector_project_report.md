@@ -1,4 +1,4 @@
-# 📄 Final Comprehensive Project Report — Rupture Detector: Policy-Calibrated Drift Intelligence for Franchise Procurement Systems
+# Report — Rupture Detector: Policy-Calibrated Drift Intelligence for Franchise Procurement Systems
 
 ## Table of Contents
 1. Executive Summary
