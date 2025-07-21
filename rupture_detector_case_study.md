@@ -1,4 +1,4 @@
-#  Strategic Case Study — Rupture Detector: Quantifying and Reducing Operational Drift in Agricultural Supply Chains
+# Case Study — Rupture Detector: Quantifying and Reducing Operational Drift in Agricultural Supply Chains
 
 ## Executive Summary
 
