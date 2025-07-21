@@ -38,6 +38,7 @@ Install the required packages:
 SECTION 3 — FILE STRUCTURE
 ---------------------------------------------------------
 
+```
 ├── rupture.py                              # Core rupture detection logic
 ├── app.py                                  # Streamlit frontend application
 ├── tests/                                  # Unit testing suite
@@ -56,6 +57,7 @@ SECTION 3 — FILE STRUCTURE
 ├── validation_report.md                    # Model and logic validation report
 ├── requirements.txt                        # Python dependencies
 └── LICENSE.txt                             # MIT License declaration
+```
 
 ---------------------------------------------------------
 SECTION 4 — DATA FORMAT
