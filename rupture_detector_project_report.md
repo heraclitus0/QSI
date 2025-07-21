@@ -73,8 +73,7 @@ Statistical tests applied:
 | Daily Rupture Impact | ₹506/day avoidable cost leakage |
 | Max Single-Day Drift | 74 kg/day, flagged correctly during bonus period |
 | High-Drift Periods | Weekends + Policy Days cumulatively explain 81% of drift cost |
-- ![Rupture Visualization](rup_sup_plot.png)
-
+- ![Rupture Visualization](graphs/rup_sup_plot.png)
 ---
 
 ## 7. Scenario Modeling and Sensitivity Testing
@@ -104,6 +103,8 @@ Statistical tests applied:
 | **Demand Decoupling** | Weekend drift surge (3× weekday baseline) |
 | **Profitability Drainage Channels** | ₹-denominated rupture tracking directly exposes micro-leakages |
 | **Correctable Drift Vectors** | 70% cost recovery achievable via targeting high-drift days (Pareto-consistent clustering)
+- ![Visualization](graphs/boxplot_policy_vs_nonpolicy.png)
+- ![Visualization](graphs/boxplot_weekday_vs_weekend.png)
 
 ---
 
