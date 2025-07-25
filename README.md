@@ -1,7 +1,7 @@
 RUPTURE DETECTOR
 ================
 
-Forecast Drift Monitoring & Preventable Loss Detection for Supply Chains
+Domain-agnostic Forecast Drift Monitoring & Preventable Loss Detection.
 
 [Live Demo](https://rupture-detector-vxcv8twev4y3vcuqzjprnw.streamlit.app/)
 
