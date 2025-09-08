@@ -15,36 +15,26 @@ from qsi import EpistemicAnalytics, EpistemicConfig
 # ---------------- Page & Header ----------------
 st.set_page_config(page_title="QSI", layout="wide")
 
+from pathlib import Path
+from PIL import Image
 
 st.markdown(
     """
     <style>
       .block-container { padding: 2rem 3rem; }
-      .kpi-card { background: #0e0e0e; padding: 16px 18px; border-radius: 12px; border: 1px solid #1f1f1f; }
-      .kpi-label { color: #9aa0a6; font-size: 12px; letter-spacing: .02em; }
-      .kpi-value { color: #ffffff; font-size: 28px; font-weight: 600; margin-top: 4px; }
-      .section-divider { border-top: 1px solid #1f1f1f; margin: 18px 0 10px 0; }
+      .brand-pad { padding: 4px 0 8px 0; }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-
 logo_path = Path("QSI_logo.png")
-if logo_path.exists():
-    col_h1, col_h2, col_h3 = st.columns([1, 2, 1])
-    with col_h2:
-        st.image(Image.open(str(logo_path)), width=100)
-        st.markdown(
-            '<div style="text-align:left; color:#aaaaaa; font-size:16px; margin-top:6px;">'
-            'Quantitative Stochastic Intelligence'
-            '</div>',
-            unsafe_allow_html=True,
-        )
-else:
-    # Fallback if logo missing
-    st.title("QSI")
-    st.caption("Quantitative Stochastic Intelligence")
+col_logo, col_spacer = st.columns([0.08, 0.92])
+with col_logo:
+    if logo_path.exists():
+        st.image(Image.open(str(logo_path)), width=54)
+    else:
+        st.markdown('<div class="brand-pad"><strong>QSI</strong></div>', unsafe_allow_html=True)
 
 
 # ---------------- Data Ingest ----------------
@@ -238,6 +228,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
