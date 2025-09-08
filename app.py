@@ -8,7 +8,7 @@ from qsi import EpistemicAnalytics, EpistemicConfig
 # ---------------- HEADER ----------------
 st.set_page_config(page_title="QSI", layout="wide")
 st.title("QSI")
-st.caption("Quantitative Stochastic Intelligence (optional: show full form here)")
+st.caption("Quantitative Stochastic Intelligence")
 
 # ---------------- DATA INPUT ----------------
 uploaded = st.file_uploader("Upload CSV (Date, Forecast, Actual, Unit_Cost)", type=["csv"])
@@ -90,4 +90,5 @@ with st.expander("Download Results"):
         "epistemic": diag["epistemic"],
     }
     st.download_button("JSON: Report", json.dumps(rep_json, indent=2).encode(), "qsi_report.json")
+
 
