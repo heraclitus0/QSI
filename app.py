@@ -36,7 +36,7 @@ if logo_path.exists():
     with col_h2:
         st.image(Image.open(str(logo_path)), width=100)
         st.markdown(
-            '<div style="text-align:center; color:#aaaaaa; font-size:16px; margin-top:6px;">'
+            '<div style="text-align:left; color:#aaaaaa; font-size:16px; margin-top:6px;">'
             'Quantitative Stochastic Intelligence'
             '</div>',
             unsafe_allow_html=True,
@@ -238,6 +238,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
