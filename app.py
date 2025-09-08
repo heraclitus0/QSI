@@ -1,84 +1,92 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
-from rupture import generate_dummy, compute_drift_thresholds, compute_ewma_threshold
+import json
 
-# --- Config ---
-st.set_page_config(page_title="Rupture Detector", layout="wide")
+from qsi_engine import QSIEngine, QSIConfig, generate_dummy
+from qsi_epistemic import EpistemicAnalytics, EpistemicConfig
 
-# --- Sidebar Inputs ---
-st.sidebar.title("Configuration")
-upload = st.sidebar.file_uploader("Upload data (CSV or Excel)", type=["csv", "xls", "xlsx"])
+# ---------------- HEADER ----------------
+st.set_page_config(page_title="QSI", layout="wide")
+st.title("QSI")
+st.caption("Quantitative Stochastic Intelligence (optional: show full form here)")
 
-use_dummy = st.sidebar.checkbox("Use dummy data", value=not upload)
-days = st.sidebar.slider("Days (dummy)", 7, 90, 30)
+# ---------------- DATA INPUT ----------------
+uploaded = st.file_uploader("Upload CSV (Date, Forecast, Actual, Unit_Cost)", type=["csv"])
 
-st.sidebar.markdown("---")
-st.sidebar.subheader("Drift Detection Settings")
-c = st.sidebar.slider("Drift scaling factor", 0.0, 1.0, 0.05, 0.01)
-a = st.sidebar.slider("Rupture sensitivity", 0.0, 1.0, 0.1, 0.01)
-base_threshold = st.sidebar.number_input("Base threshold", 0, 500, 100)
-sigma = st.sidebar.number_input("Noise estimate", 0, 200, 30)
-
-st.sidebar.markdown("---")
-st.sidebar.subheader("EWMA Smoothing")
-alpha = st.sidebar.slider("Alpha", 0.01, 0.5, 0.2)
-k = st.sidebar.slider("Sigma multiplier", 1, 5, 3)
-
-# --- Load & Validate Data ---
-if use_dummy:
-    df = generate_dummy(days=days)
+if uploaded:
+    df = pd.read_csv(uploaded, parse_dates=["Date"])
 else:
-    try:
-        ext = upload.name.split('.')[-1]
-        if ext == "csv":
-            df = pd.read_csv(upload, parse_dates=["Date"])
-        else:
-            df = pd.read_excel(upload, parse_dates=["Date"])
-        required_cols = {"Date", "Forecast", "Actual", "Unit_Cost"}
-        if not required_cols.issubset(df.columns):
-            st.error(f"Missing columns. Required: {required_cols}")
-            st.stop()
-    except Exception as e:
-        st.error("Error reading file. Ensure proper format and date column.")
-        st.stop()
+    st.info("Using dummy dataset — upload your own to replace.")
+    df = generate_dummy(days=60, segments=["SKU-A","SKU-B"]).rename(columns={"Segment":"SKU"})
 
-# --- Drift Detection Computation ---
-df_drift, ruptures, total_loss = compute_drift_thresholds(df, c, a, base_threshold, sigma, seed=42)
-df_final = compute_ewma_threshold(df_drift, alpha=alpha, k=k)
+# Detect possible segment columns
+candidates = [c for c in df.columns if c not in ("Date", "Forecast", "Actual", "Unit_Cost")]
+segment_col = st.selectbox("Optional segment column", ["(none)"] + candidates)
+groupby = None if segment_col == "(none)" else segment_col
 
-# --- Header ---
-st.title("Rupture Detector")
-st.markdown("Detect where forecast vs. actual data diverges and money is lost.")
+# ---------------- CONFIG ----------------
+with st.expander("Configuration", expanded=False):
+    col1, col2 = st.columns(2)
 
-# --- Plotly Chart ---
-fig = px.line(df_final, x="Date", y=["Delta", "Threshold_EWMA"], labels={"value": "Value", "variable": "Metric"})
-fig.add_scatter(x=ruptures["Date"], y=ruptures["Delta"], mode="markers",
-                marker=dict(color="red", size=8), name="Rupture")
-fig.update_layout(title="Forecast Drift vs Adaptive Threshold", xaxis_title="Date", yaxis_title="Units")
+    with col1:
+        use_ewma = st.checkbox("Use EWMA threshold", value=True)
+        base = st.number_input("Base Θ", 0.0, 10000.0, 120.0, 10.0)
+        a = st.number_input("Θ sensitivity (a)", 0.0, 10.0, 0.02, 0.01)
+        cval = st.number_input("Memory accumulation (c)", 0.0, 10.0, 0.25, 0.01)
+        sigma = st.number_input("Noise on Θ (σ)", 0.0, 100.0, 5.0, 0.5)
 
-st.plotly_chart(fig, use_container_width=True)
+    with col2:
+        alpha = st.slider("EWMA α", 0.01, 0.9, 0.25, 0.01)
+        kval = st.slider("EWMA k", 0.5, 6.0, 3.0, 0.1)
+        use_graph = st.checkbox("Couple segments (graph mode)", value=bool(groupby))
 
-# --- Results Summary ---
-st.subheader("Summary")
-st.write(f"**Total preventable loss:** ₹{int(total_loss):,}")
-
-st.subheader("Rupture Events")
-if ruptures.empty:
-    st.info("No ruptures detected – system is well-aligned.")
-else:
-    st.dataframe(
-        ruptures[["Date", "Delta", "Threshold", "Loss"]].assign(
-            Date=ruptures["Date"].dt.strftime("%Y-%m-%d"),
-            Loss=ruptures["Loss"].map(lambda x: f"₹{x:,.0f}")
-        ),
-        use_container_width=True
-    )
-
-# --- Download ---
-st.download_button(
-    label="Download Rupture Report (CSV)",
-    data=df_final.to_csv(index=False),
-    file_name="rupture_log.csv",
-    mime="text/csv"
+cfg = QSIConfig(
+    col_segment=groupby,
+    base_threshold=base, a=a, c=cval, sigma=sigma,
+    use_ewma=use_ewma, ewma_alpha=alpha, ewma_k=kval,
+    use_cognize=True, use_graph=use_graph
 )
+engine = QSIEngine(cfg)
+
+# ---------------- RUN ANALYSIS ----------------
+df_out, report = engine.analyze(df, groupby=groupby)
+diag = EpistemicAnalytics.enrich(df_out, EpistemicConfig(baseline_window=28, expiry_k=3))
+
+# ---------------- DASHBOARD ----------------
+st.subheader("📊 Key Metrics")
+
+col1, col2, col3 = st.columns(3)
+col1.metric("Total Loss", f"{report['summary']['total_loss']:.2f}")
+col2.metric("Ruptures", report['summary']['ruptures'])
+col3.metric("Mean Drift", f"{report['summary']['mean_drift']:.2f}")
+
+col4, col5 = st.columns(2)
+col4.metric("Scope Score", f"{diag['epistemic']['scope_score_0to1']:.2f}")
+col5.metric("PSI", f"{diag['epistemic']['psi']:.3f}")
+
+st.write("---")
+
+# ---------------- DETAILED VIEWS ----------------
+with st.expander("Events (ruptures)", expanded=False):
+    st.dataframe(report["events"], use_container_width=True)
+
+with st.expander("Economics breakdown", expanded=False):
+    st.json(diag["economics"], expanded=False)
+
+with st.expander("Epistemic diagnostics", expanded=False):
+    st.json(diag["epistemic"], expanded=False)
+
+# ---------------- OUTPUT ----------------
+st.subheader("Data Preview")
+st.dataframe(df_out.head(20), use_container_width=True)
+
+# ---------------- DOWNLOADS ----------------
+with st.expander("Download Results"):
+    st.download_button("CSV: Full Run", df_out.to_csv(index=False).encode(), "qsi_run.csv")
+    rep_json = {
+        "summary": report["summary"],
+        "events": report["events"].to_dict(orient="records"),
+        "economics": diag["economics"],
+        "epistemic": diag["epistemic"],
+    }
+    st.download_button("JSON: Report", json.dumps(rep_json, indent=2).encode(), "qsi_report.json")
