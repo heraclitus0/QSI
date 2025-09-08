@@ -226,8 +226,8 @@ if "graph" in report:
 
 
 # ---------------- Data Preview ----------------
-st.subheader("Data Preview")
-st.dataframe(df_out.head(30), use_container_width=True)
+with st.expander("Data Preview", expanded=False):
+    st.dataframe(df_out.head(30), use_container_width=True)
 
 
 # ---------------- Downloads ----------------
@@ -256,6 +256,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
