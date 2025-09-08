@@ -1,10 +1,10 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, replace
 from typing import Dict, Any, Tuple, Optional, List
 import numpy as np
 import pandas as pd
 
-
+# ---------------- Cognize (optional) ----------------
 _USE_COGNIZE = False
 try:
     from cognize import (
@@ -20,7 +20,7 @@ except Exception:
 # ----------------------------- Config -----------------------------
 @dataclass
 class QSIConfig:
-    # Column names
+    # Columns
     col_date: str = "Date"
     col_fc: str = "Forecast"
     col_ac: str = "Actual"
@@ -49,10 +49,39 @@ class QSIConfig:
     graph_damping: float = 0.5
     max_graph_depth: int = 1
 
-    # Cognize meta-policy (only used when Cognize path active)
+    # Cognize meta-policy
     epsilon: float = 0.10
     promote_margin: float = 1.02
     cooldown_steps: int = 20
+
+    # ---- helpers ----
+    def validate(self) -> "QSIConfig":
+        """Clamp/clean user-provided values to safe ranges."""
+        def clamp(x, lo, hi): return float(min(max(x, lo), hi))
+        return replace(
+            self,
+            base_threshold=max(0.0, float(self.base_threshold)),
+            a=clamp(self.a, 0.0, 1.0),
+            c=clamp(self.c, 0.0, 1.0),
+            sigma=max(0.0, float(self.sigma)),
+            ewma_alpha=clamp(self.ewma_alpha, 0.0001, 0.9999),
+            ewma_k=clamp(self.ewma_k, 0.0, 10.0),
+            prob_k=clamp(self.prob_k, 0.1, 50.0),
+            epsilon=clamp(self.epsilon, 0.0, 0.5),
+            promote_margin=clamp(self.promote_margin, 1.0, 2.0),
+            cooldown_steps=int(max(0, self.cooldown_steps)),
+            graph_damping=clamp(self.graph_damping, 0.0, 1.0),
+            max_graph_depth=int(max(0, self.max_graph_depth)),
+            seed=int(self.seed),
+        )
+
+    @property
+    def want_cognize(self) -> bool:
+        return bool(self.use_cognize)
+
+    @property
+    def cognize_active(self) -> bool:
+        return bool(self.use_cognize and _USE_COGNIZE)
 
 
 # ----------------------------- Engine -----------------------------
@@ -62,38 +91,68 @@ class QSIEngine:
     Analyze a time series (optionally segmented) and emit drift, memory, thresholds, rupture flags, loss.
 
     API:
-        df_out, report = QSIEngine(cfg).analyze(df, groupby=None or "SKU")
+        df_out, report = QSIEngine(cfg).analyze(df, groupby=None or "SKU", overrides={...})
     """
 
     def __init__(self, config: Optional[QSIConfig] = None):
-        self.cfg = config or QSIConfig()
+        self.cfg = (config or QSIConfig()).validate()
 
     # ----------------- Public entrypoint -----------------
-    def analyze(self, df: pd.DataFrame, groupby: Optional[str] = None) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+    def analyze(
+        self,
+        df: pd.DataFrame,
+        groupby: Optional[str] = None,
+        overrides: Optional[Dict[str, Any]] = None,
+    ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
+
+        # Apply dynamic overrides from UI (epsilon, promote_margin, EWMA α,k, etc.)
+        if overrides:
+            cfg_dict = asdict(self.cfg)
+            cfg_dict.update({k: v for k, v in overrides.items() if k in cfg_dict})
+            self.cfg = QSIConfig(**cfg_dict).validate()
+
         df = self._prep(df)
-        use_cog = _USE_COGNIZE and self.cfg.use_cognize
+
+        # Decide path
+        use_cog = self.cfg.cognize_active
+        fallback_note = None
+        if self.cfg.want_cognize and not _USE_COGNIZE:
+            # Cognize requested but not installed -> fall back
+            use_cog = False
+            # If EWMA is on, use EWMA; else native
+            fallback_note = "cognize_unavailable_fallback"
 
         if groupby and use_cog and self.cfg.use_graph:
-            return self._analyze_cognize_graph(df, groupby)
-
-        if groupby:
+            out, rep = self._analyze_cognize_graph(df, groupby)
+        elif groupby:
             parts: List[pd.DataFrame] = []
             by_seg: Dict[str, Any] = {}
             for seg, sub in df.groupby(groupby, sort=True):
-                out, rep = (self._analyze_cognize(sub) if use_cog else self._analyze_native(sub))
-                out[groupby] = seg
-                parts.append(out)
+                o, _ = (self._analyze_cognize(sub) if use_cog else self._analyze_native(sub))
+                o[groupby] = seg
+                parts.append(o)
                 by_seg[str(seg)] = {
-                    "n": int(len(out)),
-                    "ruptures": int(out["rupture"].sum()),
-                    "loss": float(out["loss"].sum()),
+                    "n": int(len(o)),
+                    "ruptures": int(o["rupture"].sum()),
+                    "loss": float(o["loss"].sum()),
                 }
-            merged = pd.concat(parts, ignore_index=True)
-            overall = self._make_report(merged, engine=("cognize" if use_cog else "native"), by_segment=by_seg)
-            return merged, overall
+            out = pd.concat(parts, ignore_index=True)
+            rep = self._make_report(out, engine=("cognize" if use_cog else self._engine_label()), by_segment=by_seg)
+        else:
+            out, rep = (self._analyze_cognize(df) if use_cog else self._analyze_native(df))
 
-        # single stream
-        return (self._analyze_cognize(df) if use_cog else self._analyze_native(df))
+        # annotate report with environment flags & fallbacks
+        rep.setdefault("flags", {})
+        rep["flags"]["cognize_available"] = _USE_COGNIZE
+        rep["flags"]["cognize_requested"] = self.cfg.want_cognize
+        if fallback_note:
+            rep["flags"][fallback_note] = True
+
+        return out, rep
+
+    # ----------------- Which label for non-cognize path -----------------
+    def _engine_label(self) -> str:
+        return "ewma" if self.cfg.use_ewma else "native"
 
     # ----------------- Validation / prep -----------------
     def _prep(self, df: pd.DataFrame) -> pd.DataFrame:
@@ -122,7 +181,7 @@ class QSIEngine:
         std = np.sqrt(var.fillna(0.0))
         return (mu + self.cfg.ewma_k * std).astype(float)
 
-    # ----------------- Native path -----------------
+    # ----------------- Native / EWMA path -----------------
     def _analyze_native(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         c, rng = self.cfg, np.random.default_rng(self.cfg.seed)
         fc = df[c.col_fc].to_numpy(float)
@@ -162,13 +221,12 @@ class QSIEngine:
         out = df.copy()
         out["drift"], out["E"], out["Theta"] = drift, E, Theta
         out["rupture"], out["rupture_prob"], out["loss"] = rupture, p, loss
-        report = self._make_report(out, engine="native")
+        report = self._make_report(out, engine=self._engine_label())
         return out, report
 
     # ----------------- Cognize single-stream -----------------
     def _analyze_cognize(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         c = self.cfg
-        # Base state with safe policies; PolicyManager handles meta-policy selection.
         s = EpistemicState(V0=0.0, threshold=c.base_threshold, realign_strength=c.c)
         s.inject_policy(threshold=threshold_adaptive, realign=realign_tanh, collapse=collapse_soft_decay)
         s.policy_manager = PolicyManager(
@@ -178,9 +236,8 @@ class QSIEngine:
 
         rows = []
         for _, r in df.iterrows():
-            # Drift = |Forecast - Actual|
             V = float(abs(r[c.col_fc] - r[c.col_ac]))
-            s.receive(V)                      # runs threshold/realign/collapse & meta-policy
+            s.receive(V)
             last = s.last() or {}
 
             # SAFE Θ extraction (Cognize keys may vary)
@@ -202,16 +259,15 @@ class QSIEngine:
                 c.col_ac: r[c.col_ac],
                 c.col_cost: r[c.col_cost],
                 "drift": V,
-                "E": float(last.get("E", s.E)),
+                "E": float(last.get("E", getattr(s, "E", 0.0))),
                 "Theta": theta_val,
                 "rupture": rupt,
                 "rupture_prob": p,
                 "loss": float(loss),
             })
 
-            # Keep semantics aligned with native: reset memory on rupture.
             if rupt:
-                s.E = 0.0
+                s.E = 0.0  # keep semantics aligned with native: reset memory on rupture
 
         out = pd.DataFrame(rows)
         report = self._make_report(out, engine="cognize")
@@ -236,12 +292,10 @@ class QSIEngine:
 
         frames: List[pd.DataFrame] = []
         for ts, frame in df.groupby(c.col_date, sort=True):
-            # drive each node by its segment drift
             for seg, r in frame.groupby(groupby):
                 V = float(abs(r.iloc[0][c.col_fc] - r.iloc[0][c.col_ac]))
                 G.step(str(seg), V)
 
-            # collect a snapshot for all segments
             snap = []
             for seg in segments:
                 st = G.nodes[str(seg)]
@@ -274,7 +328,6 @@ class QSIEngine:
 
         out = pd.concat(frames, ignore_index=True)
 
-        # optional graph telemetry (best-effort)
         graph_meta = {}
         try:
             if hasattr(G, "stats"):
@@ -317,7 +370,12 @@ class QSIEngine:
 
 
 # ----------------- Convenience: demo data -----------------
-def generate_dummy(days: int = 60, seed: int = 42, unit_cost: float = 40.0, segments: Optional[List[str]] = None) -> pd.DataFrame:
+def generate_dummy(
+    days: int = 60,
+    seed: int = 42,
+    unit_cost: float = 40.0,
+    segments: Optional[List[str]] = None
+) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
     dates = pd.date_range(end=pd.Timestamp.today().normalize(), periods=days)
     if segments:
@@ -343,4 +401,3 @@ def generate_dummy(days: int = 60, seed: int = 42, unit_cost: float = 40.0, segm
             "Actual": ac,
             "Unit_Cost": unit_cost
         })
-
