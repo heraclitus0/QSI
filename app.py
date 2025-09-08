@@ -132,12 +132,12 @@ def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
 
 def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date", show_mean: bool = True) -> go.Figure:
     # Palette tuned for dark theme
-  CLR_BAND  = "rgba(255,255,255,0.06)"   # volatility fill
-  CLR_DRIFT = "rgba(220,220,220,1.00)"   # primary neutral (brighter, 2px)
-  CLR_THETA = "rgba(160,160,160,0.95)"   # muted reference
-  CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
-  CLR_RUPT  = "rgba(232,73,73,1.00)"     # only red (ruptures)
-
+    CLR_BAND  = "rgba(255,255,255,0.06)"   # volatility fill
+    CLR_DRIFT = "rgba(220,220,220,1.00)"   # primary neutral (brighter, 2px)
+    CLR_THETA = "rgba(160,160,160,0.95)"   # muted reference
+    CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
+    CLR_RUPT  = "rgba(232,73,73,1.00)"     # only red (ruptures)
+  
     band = _rolling_band(frame["drift"], window=7)
     fig = go.Figure()
 
@@ -256,6 +256,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
