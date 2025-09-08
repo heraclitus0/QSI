@@ -1,3 +1,4 @@
+# app.py
 import json
 from pathlib import Path
 
@@ -57,84 +58,119 @@ candidate_segments = [c for c in df.columns if c not in ("Date", "Forecast", "Ac
 segment_col = st.selectbox("Segment (optional)", ["None"] + candidate_segments, index=0)
 groupby = None if segment_col == "None" else segment_col
 
-# Optional boolean columns for policy
-bool_cols = [c for c in df.columns if df[c].dropna().map(lambda x: isinstance(x, (bool, np.bool_))).all()]
-policy_col = st.selectbox("Policy flag (optional boolean column)", ["None"] + bool_cols, index=0)
-policy_col = None if policy_col == "None" else policy_col
-
 
 # ---------------- Configuration ----------------
 with st.expander("Detection Model • QSI engine", expanded=False):
-    c1, c2, c3 = st.columns(3)
+    c2, c1, c3 = st.columns(3)
 
-    # Native / EWMA
-    with c1:
-        base = st.number_input("Base Θ", min_value=0.0, value=120.0, step=10.0)
-        a = st.number_input("Θ sensitivity (a)", min_value=0.0, value=0.02, step=0.01, format="%.2f")
-        cval = st.number_input("Memory accumulation (c)", min_value=0.0, value=0.25, step=0.01, format="%.2f")
-        sigma = st.number_input("Noise σ", min_value=0.0, value=5.0, step=0.5)
+    # EWMA first so its state can disable native knobs
     with c2:
         use_ewma = st.checkbox("Use EWMA threshold", value=True)
-        alpha = st.slider("EWMA α", 0.01, 0.9, 0.25, 0.01)
-        kval = st.slider("EWMA k", 0.5, 6.0, 3.0, 0.1)
+        alpha = st.slider("EWMA α", 0.01, 0.90, 0.25, 0.01, disabled=not use_ewma)
+        kval  = st.slider("EWMA k", 0.5, 6.0, 3.0, 0.1, disabled=not use_ewma)
+
+    with c1:
+        base   = st.number_input("Base Θ", min_value=0.0, value=120.0, step=10.0, disabled=use_ewma)
+        a      = st.number_input("Θ sensitivity (a)", min_value=0.0, value=0.02, step=0.01,
+                                 format="%.2f", disabled=use_ewma)
+        cval   = st.number_input("Memory accumulation (c)", min_value=0.0, value=0.25, step=0.01, format="%.2f")
+        sigma  = st.number_input("Noise σ", min_value=0.0, value=5.0, step=0.5, disabled=use_ewma)
+
     with c3:
-        use_graph = st.checkbox("Couple segments (graph mode)", value=bool(groupby))
-        seed = st.number_input("Seed", min_value=0, value=123, step=1)
+        seed      = st.number_input("Seed", min_value=0, value=123, step=1)
+        use_graph = st.checkbox("Couple segments (graph mode)", value=bool(groupby), disabled=(groupby is None))
 
 with st.expander("Cognize meta-policy (optional, runtime)", expanded=False):
     c4, c5, c6, c7 = st.columns(4)
     with c4:
-        use_cognize = st.checkbox("Enable Cognize", value=True, help="Turn off to run native threshold engine.")
+        use_cognize = st.checkbox("Enable Cognize", value=True,
+                                  help="Turn off to run native/EWMA engine.")
     with c5:
-        epsilon = st.slider("ε (exploration)", 0.0, 0.5, 0.10, 0.01, help="Higher = explore more candidate policies.")
+        epsilon = st.slider("ε (exploration)", 0.0, 0.5, 0.10, 0.01,
+                            help="Higher = explore more candidate policies.", disabled=not use_cognize)
     with c6:
-        promote_margin = st.slider("Promote margin", 1.00, 1.10, 1.02, 0.01, help="How much better a candidate must be.")
+        promote_margin = st.slider("Promote margin", 1.00, 1.10, 1.02, 0.01,
+                                   help="How much better a candidate must be.", disabled=not use_cognize)
     with c7:
-        cooldown_steps = st.number_input("Cooldown steps", min_value=1, value=20, step=1)
+        cooldown_steps = st.number_input("Cooldown steps", min_value=1, value=20, step=1,
+                                         disabled=not use_cognize)
 
+with st.expander("Advanced (probability • graph)", expanded=False):
+    a1, a2, a3 = st.columns(3)
+    with a1:
+        prob_k  = st.slider("Prob. slope (k)", 0.5, 20.0, 6.0, 0.5)
+    with a2:
+        prob_mid = st.number_input("Prob. mid (margin at 50%)", value=0.0, step=1.0)
+    with a3:
+        graph_damping  = st.slider("Graph damping", 0.0, 1.0, 0.5, 0.05, disabled=(groupby is None))
+        max_graph_depth = st.slider("Graph max depth", 0, 3, 1, 1, disabled=(groupby is None))
+
+# Build config + engine
 cfg = QSIConfig(
     col_segment=groupby,
-    base_threshold=base, a=a, c=cval, sigma=sigma, seed=int(seed),
-    use_ewma=use_ewma, ewma_alpha=alpha, ewma_k=kval,
-    use_cognize=use_cognize, use_graph=use_graph,
-    epsilon=epsilon, promote_margin=promote_margin, cooldown_steps=int(cooldown_steps),
+    base_threshold=float(base), a=float(a), c=float(cval), sigma=float(sigma), seed=int(seed),
+    use_ewma=bool(use_ewma), ewma_alpha=float(alpha), ewma_k=float(kval),
+    use_cognize=bool(use_cognize), use_graph=bool(use_graph),
+    epsilon=float(epsilon), promote_margin=float(promote_margin), cooldown_steps=int(cooldown_steps),
+    prob_k=float(prob_k), prob_mid=float(prob_mid),
+    graph_damping=float(graph_damping), max_graph_depth=int(max_graph_depth),
 )
 engine = QSIEngine(cfg)
 
-# ---------------- Epistemic Diagnostics Config ----------------
+
+# ---------------- Epistemic Diagnostics Config (matches current qsi_epistemic.py) ----------------
 with st.expander("Epistemic diagnostics (scope • PSI • ETA)", expanded=False):
     d1, d2, d3 = st.columns(3)
     with d1:
         baseline_window = st.number_input("Baseline window (days)", min_value=5, value=28, step=1)
-        recent_window = st.number_input("Recent window (days, 0=same as baseline)", min_value=0, value=0, step=1)
-        recent_window = None if recent_window == 0 else int(recent_window)
     with d2:
         scope_lo = st.slider("Scope quantile low", 0.0, 0.20, 0.05, 0.01)
         scope_hi = st.slider("Scope quantile high", 0.80, 1.0, 0.95, 0.01)
         psi_bins = st.slider("PSI bins", 4, 30, 10, 1)
     with d3:
-        on_target_pct = st.slider("On-target tolerance (%)", 0.0, 0.20, 0.05, 0.01)
-        severe_pct = st.slider("Severe threshold (%)", 0.10, 0.60, 0.20, 0.01)
         expiry_k = st.number_input("ETA: consecutive breaches (k)", min_value=1, value=3, step=1)
         expiry_lookback = st.number_input("ETA: lookback window", min_value=7, value=28, step=1)
+        min_points_for_trend = st.number_input("ETA: min points for trend", min_value=5, value=10, step=1)
 
 epi_cfg = EpistemicConfig(
     baseline_mode="window",
     baseline_window=int(baseline_window),
     scope_q_lo=float(scope_lo), scope_q_hi=float(scope_hi),
     psi_bins=int(psi_bins),
-    recent_window=recent_window,
-    on_target_pct=float(on_target_pct),
-    severe_pct=float(severe_pct),
     expiry_k=int(expiry_k),
     expiry_lookback=int(expiry_lookback),
-    groupby=groupby,
-    policy_col=policy_col,
+    min_points_for_trend=int(min_points_for_trend),
 )
 
-# ---------------- Run Engine ----------------
-df_out, report = engine.analyze(df, groupby=groupby)
+
+# ---------------- Run Engine (pass overrides so knobs actually affect outputs) ----------------
+overrides = {
+    # detection
+    "use_ewma": bool(use_ewma),
+    "ewma_alpha": float(alpha),
+    "ewma_k": float(kval),
+    "base_threshold": float(base),
+    "a": float(a),
+    "c": float(cval),
+    "sigma": float(sigma),
+    "seed": int(seed),
+
+    # cognize
+    "use_cognize": bool(use_cognize),
+    "epsilon": float(epsilon),
+    "promote_margin": float(promote_margin),
+    "cooldown_steps": int(cooldown_steps),
+
+    # prob & graph
+    "prob_k": float(prob_k),
+    "prob_mid": float(prob_mid),
+    "use_graph": bool(use_graph),
+    "graph_damping": float(graph_damping),
+    "max_graph_depth": int(max_graph_depth),
+}
+df_out, report = engine.analyze(df, groupby=groupby, overrides=overrides)
 diag = EpistemicAnalytics.enrich(df_out, epi_cfg)
+
 
 # ---------------- KPI Strip ----------------
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
@@ -154,6 +190,7 @@ kpi(k3, "Mean Drift", f"{report['summary']['mean_drift']:.2f}")
 kpi(k4, "Scope Score", f"{diag['epistemic']['scope_score_0to1']:.2f}")
 kpi(k5, "PSI", f"{diag['epistemic']['psi']:.2f}")
 
+
 # ---------------- Chart Controls ----------------
 c_plot1, c_plot2, c_plot3 = st.columns([1.3, 1, 1])
 with c_plot1:
@@ -162,6 +199,7 @@ with c_plot2:
     band_win = st.slider("Volatility band window (days)", 3, 21, 7, 1)
 with c_plot3:
     ygrid = st.checkbox("Show y-grid", True)
+
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
@@ -177,7 +215,7 @@ def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date",
     CLR_DRIFT = "rgba(220,220,220,1.00)"   # primary neutral (brighter, 2px)
     CLR_THETA = "rgba(160,160,160,0.95)"   # muted reference
     CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
-    CLR_RUPT  = "rgba(232,73,73,1.00)"     # only red (ruptures)
+    CLR_RUPT  = "rgba(232,73,73,1.00)"     # semantic red (ruptures)
 
     band = _rolling_band(frame["drift"], window=int(band_window))
     fig = go.Figure()
@@ -194,14 +232,14 @@ def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date",
         name="Volatility"
     ))
 
-    # Drift (primary)
+    # Drift
     fig.add_trace(go.Scatter(
         x=frame[date_col], y=frame["drift"],
         mode="lines", name="Drift",
         line=dict(width=2, color=CLR_DRIFT)
     ))
 
-    # Threshold (reference)
+    # Threshold
     fig.add_trace(go.Scatter(
         x=frame[date_col], y=frame["Theta"],
         mode="lines", name="Threshold",
@@ -213,10 +251,11 @@ def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date",
         fig.add_trace(go.Scatter(
             x=frame[date_col], y=band["mean"],
             mode="lines", name="Mean",
-            line=dict(width=1, color=CLR_MEAN, dash="dot")
+            line=dict(width=1, color=CLR_MEAN, dash="dot"),
+            legendgroup="mean", showlegend=True  # keep interactive; can be toggled off by user
         ))
 
-    # Rupture markers (semantic red)
+    # Rupture markers
     rupt = frame[frame["rupture"]]
     if not rupt.empty:
         fig.add_trace(go.Scatter(
@@ -252,6 +291,7 @@ hm = fig_segment_heatmap(df_out, groupby)
 if hm is not None:
     st.plotly_chart(hm, use_container_width=True)
 
+
 # ---------------- Details ----------------
 with st.expander("Events", expanded=False):
     st.dataframe(report["events"], use_container_width=True)
@@ -262,25 +302,16 @@ with st.expander("Economics", expanded=False):
 with st.expander("Epistemic", expanded=False):
     st.json(diag["epistemic"], expanded=False)
 
-# Optional: deeper diagnostics / policy breakdown / group stats
-if "diagnostics" in diag:
-    with st.expander("Diagnostics", expanded=False):
-        st.json(diag["diagnostics"], expanded=False)
-if "by_group" in diag:
-    with st.expander("By segment", expanded=False):
-        st.json(diag["by_group"], expanded=False)
-if "policy_breakdown" in diag:
-    with st.expander("Policy vs Non-policy", expanded=False):
-        st.json(diag["policy_breakdown"], expanded=False)
-
 # Optional Cognize graph telemetry
 if "graph" in report:
     with st.expander("Graph telemetry", expanded=False):
         st.json(report["graph"], expanded=False)
 
+
 # ---------------- Data Preview ----------------
 with st.expander("Data Preview", expanded=False):
     st.dataframe(df_out.head(30), use_container_width=True)
+
 
 # ---------------- Downloads ----------------
 with st.expander("Download"):
@@ -296,14 +327,9 @@ with st.expander("Download"):
         "events": report["events"].to_dict(orient="records"),
         "economics": diag.get("economics", {}),
         "epistemic": diag.get("epistemic", {}),
-        "diagnostics": diag.get("diagnostics", {}),
     }
     if "by_segment" in report:
         export_report["by_segment"] = report["by_segment"]
-    if "by_group" in diag:
-        export_report["by_group"] = diag["by_group"]
-    if "policy_breakdown" in diag:
-        export_report["policy_breakdown"] = diag["policy_breakdown"]
 
     st.download_button(
         "Report JSON",
