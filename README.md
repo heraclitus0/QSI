@@ -92,8 +92,7 @@ Configurable in-app:
 - Plots: drift vs threshold overlays  
 - Aggregate preventable loss  
 
-![Drift Visualization](graphs/drift_vs_threshold.png)
-
+![Drift Visualization](graphs/rup_sup_plot.png)
 ---
 
 ## SECTION 8 — DEPLOYMENT OPTIONS
@@ -142,3 +141,4 @@ By embedding these traditions, QSI is not just reactive monitoring — it is a *
 [Read full case study — Rice Supply Chain (Hyderabad)](qsi_project_report.md)  
 
 © 2025 Pulikanti Sashi Bharadwaj. Open-source licensed.  
+
