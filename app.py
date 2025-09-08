@@ -1,6 +1,3 @@
-# app.py
-# QSI — Streamlit board view (minimal, enterprise tone)
-
 import json
 import pandas as pd
 import plotly.graph_objects as go
@@ -145,3 +142,4 @@ with st.expander("Download"):
 if "graph" in report:
     with st.expander("Graph telemetry"):
         st.json(report["graph"], expanded=False)
+
