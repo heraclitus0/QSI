@@ -14,6 +14,15 @@ from qsi import EpistemicAnalytics, EpistemicConfig
 
 # ---------------- Page & Header ----------------
 st.set_page_config(page_title="QSI", layout="wide")
+st.markdown("""
+<style>
+  .block-container { padding: 2rem 3rem; }
+  .kpi-card { background:#0e0e0e; padding:16px 18px; border-radius:12px; border:1px solid #1f1f1f; }
+  .kpi-label { color:#9aa0a6; font-size:12px; letter-spacing:.02em; }
+  .kpi-value { color:#ffffff; font-size:28px; font-weight:600; margin-top:4px; }
+  .section-divider { border-top:1px solid #1f1f1f; margin:18px 0 10px 0; }
+</style>
+""", unsafe_allow_html=True)
 
 from pathlib import Path
 from PIL import Image
@@ -116,46 +125,67 @@ kpi(k5, "PSI", f"{diag['epistemic']['psi']:.3f}")
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
-    """Return rolling mean and std; robust to short series."""
     s = y.astype(float)
     m = s.rolling(window=window, min_periods=max(2, window // 2)).mean()
     std = s.rolling(window=window, min_periods=max(2, window // 2)).std(ddof=0)
     return pd.DataFrame({"mean": m, "lo": m - std, "hi": m + std})
 
-def fig_drift_vs_theta(frame: pd.DataFrame, date_col="Date") -> go.Figure:
-    band = _rolling_band(frame["drift"], window=7)
+def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date", show_mean: bool = True) -> go.Figure:
+    # Palette tuned for dark theme
+    CLR_BAND  = "rgba(255,255,255,0.06)"   # volatility fill
+    CLR_DRIFT = "rgba(235,235,235,1.00)"   # primary neutral
+    CLR_THETA = "rgba(160,160,160,0.95)"   # muted reference
+    CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
+    CLR_RUPT  = "rgba(232,73,73,1.00)"     # only red element
 
+    band = _rolling_band(frame["drift"], window=7)
     fig = go.Figure()
 
-    # Volatility band (±1σ around rolling mean)
-    fig.add_traces([
-        go.Scatter(
-            x=frame[date_col], y=band["hi"], line=dict(width=0), showlegend=False, hoverinfo="skip"
-        ),
-        go.Scatter(
-            x=frame[date_col], y=band["lo"],
-            fill="tonexty", fillcolor="rgba(100,100,255,0.08)",
-            line=dict(width=0), showlegend=False, hoverinfo="skip"
-        ),
-    ])
+    # Volatility band (±1σ)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=band["hi"], line=dict(width=0),
+        showlegend=False, hoverinfo="skip"
+    ))
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=band["lo"],
+        fill="tonexty", fillcolor=CLR_BAND,
+        line=dict(width=0), showlegend=False, hoverinfo="skip",
+        name="Volatility"
+    ))
 
-    # Drift & Threshold
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["drift"], mode="lines", name="Drift"))
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["Theta"], mode="lines", name="Threshold"))
+    # Drift (primary)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["drift"],
+        mode="lines", name="Drift",
+        line=dict(width=2, color=CLR_DRIFT)
+    ))
 
-    # Rupture markers
-    r = frame[frame["rupture"]]
-    if not r.empty:
-        fig.add_trace(
-            go.Scatter(
-                x=r[date_col], y=r["drift"],
-                mode="markers", name="Rupture",
-                marker=dict(size=8, symbol="x")
-            )
-        )
+    # Threshold (reference)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["Theta"],
+        mode="lines", name="Threshold",
+        line=dict(width=1.5, color=CLR_THETA)
+    ))
+
+    # Rolling mean (optional)
+    if show_mean:
+        fig.add_trace(go.Scatter(
+            x=frame[date_col], y=band["mean"],
+            mode="lines", name="Mean",
+            line=dict(width=1, color=CLR_MEAN, dash="dot")
+        ))
+
+    # Rupture markers (semantic red)
+    rupt = frame[frame["rupture"]]
+    if not rupt.empty:
+        fig.add_trace(go.Scatter(
+            x=rupt[date_col], y=rupt["drift"],
+            mode="markers", name="Rupture",
+            marker=dict(size=7, symbol="x", color=CLR_RUPT)
+        ))
 
     fig.update_layout(
-        margin=dict(l=0, r=0, t=8, b=0),
+        margin=dict(l=0, r=0, t=6, b=0),
         legend=dict(orientation="h", x=0, y=1.08),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)")
@@ -226,6 +256,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
