@@ -1,6 +1,6 @@
 from __future__ import annotations
-from dataclasses import dataclass, asdict, replace
-from typing import Dict, Any, Tuple, Optional, List
+from dataclasses import dataclass, asdict, replace, field
+from typing import Dict, Any, Tuple, Optional, List, Callable
 import numpy as np
 import pandas as pd
 
@@ -17,7 +17,50 @@ except Exception:
     _USE_COGNIZE = False
 
 
-# ----------------------------- Config -----------------------------
+# ====================================================
+#            Custom Threshold Plug-in Registry
+# ====================================================
+CustomFn = Callable[[pd.Series, Dict[str, Any], pd.DataFrame], pd.Series]
+_CUSTOM_MODELS: Dict[str, CustomFn] = {}
+
+def register_custom_model(name: str, fn: CustomFn) -> None:
+    """Register a custom threshold generator.
+    fn signature: (drift_series, params_dict, df) -> pd.Series[float] of same length as drift.
+    """
+    if not callable(fn):
+        raise TypeError("custom model must be callable")
+    _CUSTOM_MODELS[str(name)] = fn
+
+def list_custom_models() -> List[str]:
+    """List available custom models (including any app-registered enterprise statics)."""
+    return sorted(_CUSTOM_MODELS.keys())
+
+
+# ---------- Built-in examples (safe, dependency-free) ----------
+def _theta_rolling_quantile(drift: pd.Series, params: Dict[str, Any], df: pd.DataFrame) -> pd.Series:
+    win = int(params.get("window", 14))
+    q = float(params.get("q", 0.80))
+    s = pd.Series(pd.to_numeric(drift, errors="coerce")).astype(float)
+    th = s.rolling(win, min_periods=max(2, win // 2)).quantile(q)
+    return th.fillna(method="backfill").astype(float)
+
+def _theta_window_std_k(drift: pd.Series, params: Dict[str, Any], df: pd.DataFrame) -> pd.Series:
+    win = int(params.get("window", 14))
+    k   = float(params.get("k", 2.5))
+    s = pd.Series(pd.to_numeric(drift, errors="coerce")).astype(float)
+    mu  = s.rolling(win, min_periods=max(2, win // 2)).mean()
+    std = s.rolling(win, min_periods=max(2, win // 2)).std(ddof=0)
+    th = (mu + k * std)
+    return th.fillna(method="backfill").astype(float)
+
+# Register built-ins at import time
+register_custom_model("rolling_quantile", _theta_rolling_quantile)
+register_custom_model("window_std_k", _theta_window_std_k)
+
+
+# ====================================================
+#                     QSI Config
+# ====================================================
 @dataclass
 class QSIConfig:
     # Columns
@@ -54,10 +97,18 @@ class QSIConfig:
     promote_margin: float = 1.02
     cooldown_steps: int = 20
 
+    # Enterprise statics (custom thresholds via registry)
+    custom_model: Optional[str] = None              # e.g., "rolling_quantile"
+    custom_params: Dict[str, Any] = field(default_factory=dict)
+    # When Cognize is ON, should we use the custom θ as the live threshold?
+    cognize_respect_custom_theta: bool = True
+
     # ---- helpers ----
     def validate(self) -> "QSIConfig":
         """Clamp/clean user-provided values to safe ranges."""
         def clamp(x, lo, hi): return float(min(max(x, lo), hi))
+        # Coerce dict for custom_params to avoid UI passing None
+        cp = self.custom_params if isinstance(self.custom_params, dict) else {}
         return replace(
             self,
             base_threshold=max(0.0, float(self.base_threshold)),
@@ -73,6 +124,7 @@ class QSIConfig:
             graph_damping=clamp(self.graph_damping, 0.0, 1.0),
             max_graph_depth=int(max(0, self.max_graph_depth)),
             seed=int(self.seed),
+            custom_params=cp,
         )
 
     @property
@@ -84,7 +136,9 @@ class QSIConfig:
         return bool(self.use_cognize and _USE_COGNIZE)
 
 
-# ----------------------------- Engine -----------------------------
+# ====================================================
+#                      QSI Engine
+# ====================================================
 class QSIEngine:
     """
     QSI — Quantitative Stochastic Intelligence.
@@ -105,7 +159,7 @@ class QSIEngine:
         overrides: Optional[Dict[str, Any]] = None,
     ) -> Tuple[pd.DataFrame, Dict[str, Any]]:
 
-        # Apply dynamic overrides from UI (epsilon, promote_margin, EWMA α,k, etc.)
+        # Apply dynamic overrides from UI (epsilon, promote_margin, EWMA α,k, etc. + custom model knobs)
         if overrides:
             cfg_dict = asdict(self.cfg)
             cfg_dict.update({k: v for k, v in overrides.items() if k in cfg_dict})
@@ -119,7 +173,6 @@ class QSIEngine:
         if self.cfg.want_cognize and not _USE_COGNIZE:
             # Cognize requested but not installed -> fall back
             use_cog = False
-            # If EWMA is on, use EWMA; else native
             fallback_note = "cognize_unavailable_fallback"
 
         if groupby and use_cog and self.cfg.use_graph:
@@ -181,7 +234,21 @@ class QSIEngine:
         std = np.sqrt(var.fillna(0.0))
         return (mu + self.cfg.ewma_k * std).astype(float)
 
-    # ----------------- Native / EWMA path -----------------
+    def _theta_from_custom(self, drift: pd.Series, df: pd.DataFrame) -> Optional[pd.Series]:
+        """Return custom θ if a custom model is configured; else None."""
+        name = self.cfg.custom_model
+        if not name:
+            return None
+        fn = _CUSTOM_MODELS.get(name)
+        if not fn:
+            raise ValueError(f"Custom model '{name}' not found. Available: {list_custom_models()}")
+        theta = fn(drift, dict(self.cfg.custom_params or {}), df)
+        theta = pd.to_numeric(pd.Series(theta), errors="raise").astype(float)
+        if len(theta) != len(drift):
+            raise ValueError("Custom model returned θ of mismatched length.")
+        return theta
+
+    # ----------------- Native / EWMA / Custom path -----------------
     def _analyze_native(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         c, rng = self.cfg, np.random.default_rng(self.cfg.seed)
         fc = df[c.col_fc].to_numpy(float)
@@ -194,7 +261,20 @@ class QSIEngine:
         rupture = np.zeros_like(drift, dtype=bool)
         loss = np.zeros_like(drift, dtype=float)
 
-        if c.use_ewma:
+        # Try custom θ first
+        custom_theta = self._theta_from_custom(pd.Series(drift), df)
+
+        if custom_theta is not None:
+            Theta = custom_theta.to_numpy(float)
+            mem = 0.0
+            for i, d in enumerate(drift):
+                th = Theta[i]
+                if d > th:
+                    rupture[i] = True; loss[i] = d * cost[i]; mem = 0.0
+                else:
+                    mem = mem + c.c * d
+                E[i] = mem
+        elif c.use_ewma:
             Theta = self._theta_ewma(pd.Series(drift)).to_numpy(float)
             mem = 0.0
             for i, d in enumerate(drift):
@@ -221,10 +301,10 @@ class QSIEngine:
         out = df.copy()
         out["drift"], out["E"], out["Theta"] = drift, E, Theta
         out["rupture"], out["rupture_prob"], out["loss"] = rupture, p, loss
-        report = self._make_report(out, engine=self._engine_label())
+        report = self._make_report(out, engine=("custom" if custom_theta is not None else self._engine_label()))
         return out, report
 
-    # ----------------- Cognize single-stream -----------------
+    # ----------------- Cognize single-stream (with optional custom θ live) -----------------
     def _analyze_cognize(self, df: pd.DataFrame) -> Tuple[pd.DataFrame, Dict[str, Any]]:
         c = self.cfg
         s = EpistemicState(V0=0.0, threshold=c.base_threshold, realign_strength=c.c)
@@ -234,9 +314,23 @@ class QSIEngine:
             epsilon=c.epsilon, promote_margin=c.promote_margin, cooldown_steps=c.cooldown_steps
         )
 
+        # Precompute drift + optional custom θ
+        drift_series = (df[c.col_fc] - df[c.col_ac]).abs().astype(float)
+        custom_theta = self._theta_from_custom(drift_series, df)
+
         rows = []
+        idx = 0
         for _, r in df.iterrows():
             V = float(abs(r[c.col_fc] - r[c.col_ac]))
+
+            # If configured: drive Cognize with the enterprise θ at this step
+            if custom_theta is not None and c.cognize_respect_custom_theta:
+                try:
+                    s.threshold = float(custom_theta.iloc[idx])
+                except Exception:
+                    # Defensive: ignore bad index/missing and keep previous threshold
+                    pass
+
             s.receive(V)
             last = s.last() or {}
 
@@ -268,9 +362,12 @@ class QSIEngine:
 
             if rupt:
                 s.E = 0.0  # keep semantics aligned with native: reset memory on rupture
+            idx += 1
 
         out = pd.DataFrame(rows)
-        report = self._make_report(out, engine="cognize")
+        # Label as "cognize" (with note if we respected a custom θ)
+        engine_label = "cognize" if custom_theta is None or not c.cognize_respect_custom_theta else "cognize+customθ"
+        report = self._make_report(out, engine=engine_label)
         return out, report
 
     # ----------------- Cognize graph (segments coupling) -----------------
