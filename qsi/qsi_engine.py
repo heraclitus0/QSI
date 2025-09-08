@@ -1,4 +1,3 @@
-# qsi_engine.py
 from __future__ import annotations
 from dataclasses import dataclass, asdict
 from typing import Dict, Any, Tuple, Optional, List
@@ -344,3 +343,4 @@ def generate_dummy(days: int = 60, seed: int = 42, unit_cost: float = 40.0, segm
             "Actual": ac,
             "Unit_Cost": unit_cost
         })
+
