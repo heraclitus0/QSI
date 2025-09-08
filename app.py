@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 import json
 
-from qsi_engine import QSIEngine, QSIConfig, generate_dummy
-from qsi_epistemic import EpistemicAnalytics, EpistemicConfig
+from qsi import QSIEngine, QSIConfig, generate_dummy
+from qsi import EpistemicAnalytics, EpistemicConfig
 
 # ---------------- HEADER ----------------
 st.set_page_config(page_title="QSI", layout="wide")
@@ -90,3 +90,4 @@ with st.expander("Download Results"):
         "epistemic": diag["epistemic"],
     }
     st.download_button("JSON: Report", json.dumps(rep_json, indent=2).encode(), "qsi_report.json")
+
