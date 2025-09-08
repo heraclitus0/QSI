@@ -1,26 +1,43 @@
 # qsi_epistemic.py
 from __future__ import annotations
 from dataclasses import dataclass, replace
-from typing import Optional, Dict, Any, Tuple
+from typing import Optional, Dict, Any, Tuple, Callable, List
 import numpy as np
 import pandas as pd
 
+# ====================================================
+#              Custom Diagnostics Registry
+# ====================================================
+# fn signature: (df_out: pd.DataFrame, cfg: "EpistemicConfig") -> Dict[str, Any]
+CustomDiagFn = Callable[[pd.DataFrame, "EpistemicConfig"], Dict[str, Any]]
+_CUSTOM_DIAG: Dict[str, CustomDiagFn] = {}
 
-# ----------------------------- Config -----------------------------
+def register_custom_diag(name: str, fn: CustomDiagFn) -> None:
+    if not callable(fn):
+        raise TypeError("custom diagnostic must be callable")
+    _CUSTOM_DIAG[str(name)] = fn
+
+def list_custom_diags() -> List[str]:
+    return sorted(_CUSTOM_DIAG.keys())
+
+
+# ====================================================
+#                     Config
+# ====================================================
 @dataclass
 class EpistemicConfig:
     # Baseline construction
     baseline_mode: str = "window"          # "window" | "file"
     baseline_window: int = 30              # first-N rows (after sort) if "window"
-    baseline_file: Optional[str] = None    # CSV with 'drift' or 'Delta' column if "file"
+    baseline_file: Optional[str] = None    # CSV with 'drift' or 'Delta' if "file"
 
-    # Scope score quantile band (what we consider "in-scope")
+    # Scope score quantile band
     scope_q_lo: float = 0.05
     scope_q_hi: float = 0.95
 
     # PSI
     psi_bins: int = 10                     # target number of bins
-    psi_min_bins: int = 4                  # minimum distinct cuts required (else PSI=0)
+    psi_min_bins: int = 4                  # minimum distinct cuts (else PSI=0)
     psi_floor: float = 1e-6                # floor to avoid log(0)
 
     # Breach ETA
@@ -32,12 +49,12 @@ class EpistemicConfig:
     on_target_pct: float = 0.05            # <= 5% relative error is "on–target"
     severe_pct: float = 0.20               # >= 20% relative error is "severe"
 
-    # Recent slice to compare against baseline (default: same size as baseline)
-    recent_window: Optional[int] = None    # if None, use len(baseline)
+    # Recent slice (default: same size as baseline)
+    recent_window: Optional[int] = None
 
-    # Optional reporting helpers
-    groupby: Optional[str] = None          # segment column to summarize (if present)
-    policy_col: Optional[str] = None       # boolean column; if present, emit policy/non-policy econ
+    # Reporting helpers
+    groupby: Optional[str] = None          # segment column (if present)
+    policy_col: Optional[str] = None       # boolean column (if present)
 
     # ---- small validator to keep UI inputs safe ----
     def validate(self) -> "EpistemicConfig":
@@ -61,7 +78,9 @@ class EpistemicConfig:
         )
 
 
-# ----------------------------- Analytics -----------------------------
+# ====================================================
+#                   Analytics Core
+# ====================================================
 class EpistemicAnalytics:
 
     # ---------- Baseline ----------
@@ -83,15 +102,12 @@ class EpistemicAnalytics:
     # ---------- PSI ----------
     @staticmethod
     def _psi(actual: pd.Series, expected: pd.Series, bins: int, min_bins: int, floor: float) -> float:
-        # Build cuts from expected quantiles; merge duplicates
         q = np.linspace(0.0, 1.0, max(2, int(bins)) + 1)
         cuts = np.unique(np.quantile(expected, q))
         if len(cuts) < max(3, min_bins):      # need at least 3 cut points to form >=2 bins
             return 0.0
-        # Histograms across identical cuts
         e_hist, _ = np.histogram(expected, bins=cuts)
         a_hist, _ = np.histogram(actual,   bins=cuts)
-        # Normalize with floor to avoid log(0)
         e_den = max(e_hist.sum(), 1)
         a_den = max(a_hist.sum(), 1)
         e_pct = np.maximum(e_hist / e_den, floor)
@@ -127,60 +143,70 @@ class EpistemicAnalytics:
         m = pd.to_numeric(margin, errors="coerce").dropna()
         if len(m) < max(1, min_points):
             return None, "insufficient_points"
-        # Restrict to lookback tail
         if len(m) > lookback:
             m = m.iloc[-lookback:]
-        # Linear trend
         x = np.arange(len(m), dtype=float)
         y = m.to_numpy(dtype=float)
-        # Fit with simple polyfit
         try:
             b1, b0 = np.polyfit(x, y, deg=1)  # slope, intercept
         except Exception:
             return None, "fit_failed"
-        # If already above zero for k steps, ETA = 0
         if (m > 0).tail(k).all():
             return 0, "already_breaching"
-        # Project forward until we get k consecutive > 0 (cap horizon to one year)
         start = len(m)
         for t in range(start, start + 365):
             if all((b0 + b1 * (t + j)) > 0 for j in range(k)):
                 return t - start, "projected"
         return None, "no_breach_within_horizon"
 
+    # ---------- Board-aligned extras ----------
+    @staticmethod
+    def _pareto_share(loss_series: pd.Series, top_frac: float = 0.20) -> float:
+        s = pd.to_numeric(loss_series, errors="coerce").fillna(0.0).sort_values(ascending=False)
+        if len(s) == 0:
+            return 0.0
+        k = max(1, int(np.ceil(top_frac * len(s))))
+        return float(s.iloc[:k].sum() / max(s.sum(), 1e-9))
+
+    @staticmethod
+    def _weekend_mask(dts: pd.Series) -> pd.Series:
+        # Saturday(5) / Sunday(6)
+        return pd.to_datetime(dts, errors="coerce").dt.weekday.isin([5, 6])
+
     # ---------- Public: enrich ----------
     @staticmethod
     def enrich(df_out: pd.DataFrame, cfg_in: EpistemicConfig) -> Dict[str, Any]:
         """
-        Compute board-level epistemic diagnostics on the processed output (df_out).
-        df_out must contain: Date, Forecast, Actual, drift, Theta, loss, rupture.
+        Compute board-level epistemic diagnostics on processed output (df_out).
+        df_out must have: Date, Forecast, Actual, drift, Theta, loss, rupture.
         """
         cfg = cfg_in.validate()
-
         required = {"Date", "Forecast", "Actual", "drift", "Theta", "loss", "rupture"}
         missing = required - set(df_out.columns)
         if missing:
             raise ValueError(f"df_out missing required columns: {sorted(missing)}")
 
         eps = 1e-9
-        # Relative percent error (guarded)
-        denom = (pd.to_numeric(df_out["Actual"], errors="coerce").abs() + eps)
+        # Safe casts
+        date = pd.to_datetime(df_out["Date"], errors="coerce")
+        actual = pd.to_numeric(df_out["Actual"], errors="coerce")
+        forecast = pd.to_numeric(df_out["Forecast"], errors="coerce")
         drift = pd.to_numeric(df_out["drift"], errors="coerce").fillna(0.0)
+        theta = pd.to_numeric(df_out["Theta"], errors="coerce").fillna(0.0)
+        loss = pd.to_numeric(df_out["loss"], errors="coerce").fillna(0.0)
+        rupture = df_out["rupture"].astype(bool)
+
+        denom = (actual.abs() + eps)
         pct_err = (drift / denom).replace([np.inf, -np.inf], np.nan).fillna(0.0)
 
         on_target = pct_err <= float(cfg.on_target_pct)
-        over = (pd.to_numeric(df_out["Forecast"], errors="coerce") >
-                pd.to_numeric(df_out["Actual"], errors="coerce")) & ~on_target
-        under = (pd.to_numeric(df_out["Forecast"], errors="coerce") <
-                 pd.to_numeric(df_out["Actual"], errors="coerce")) & ~on_target
+        over = (forecast > actual) & ~on_target
+        under = (forecast < actual) & ~on_target
         severe = pct_err >= float(cfg.severe_pct)
 
-        loss = pd.to_numeric(df_out["loss"], errors="coerce").fillna(0.0)
         econ = {
             "total_loss": float(loss.sum()),
-            "loss_per_unit_mean": float(
-                (loss / denom).replace([np.inf, -np.inf], np.nan).fillna(0.0).mean()
-            ),
+            "loss_per_unit_mean": float((loss / denom).replace([np.inf, -np.inf], np.nan).fillna(0.0).mean()),
             "overforecast_count": int(over.sum()),
             "underforecast_count": int(under.sum()),
             "on_target_count": int(on_target.sum()),
@@ -204,7 +230,6 @@ class EpistemicAnalytics:
         )
 
         # Margin series for ETA
-        theta = pd.to_numeric(df_out["Theta"], errors="coerce").fillna(0.0)
         margin = (drift - theta).astype(float)
         eta_days, eta_note = EpistemicAnalytics._eta_to_breach(
             margin, cfg.expiry_k, cfg.expiry_lookback, cfg.min_points_for_trend
@@ -217,11 +242,11 @@ class EpistemicAnalytics:
             "scope_score_0to1": float(scope),
             "psi": float(psi),
             "eta_days_to_persistent_breach": (None if eta_days is None else int(eta_days)),
-            "eta_rationale": eta_note,  # explains None/0/projection
+            "eta_rationale": eta_note,
             "expiry_estimate_date": expiry_date,
         }
 
-        # Diagnostics: quantiles & window sizes (for auditability)
+        # Diagnostics: quantiles & windows
         def qdict(s: pd.Series) -> Dict[str, float]:
             s = pd.to_numeric(s, errors="coerce").dropna()
             if len(s) == 0:
@@ -239,7 +264,53 @@ class EpistemicAnalytics:
             "recent_quantiles": qdict(recent),
         }
 
-        # Optional group breakdown (segment)
+        # ---------------- Board-aligned alignment block ----------------
+        top20_share = EpistemicAnalytics._pareto_share(loss, top_frac=0.20)
+        weekend = EpistemicAnalytics._weekend_mask(date)
+        weekday = ~weekend
+
+        # weekend vs weekday drift (guard for empties)
+        wk_drift = float(pd.to_numeric(drift[weekend], errors="coerce").dropna().mean()) if weekend.any() else 0.0
+        wd_drift = float(pd.to_numeric(drift[weekday], errors="coerce").dropna().mean()) if weekday.any() else 0.0
+        weekend_multiplier = (wk_drift / wd_drift) if wd_drift > 0 else (np.inf if wk_drift > 0 else 0.0)
+
+        alignment = {
+            "pareto_top20_loss_share": float(top20_share),          # ~0.71 in your study
+            "rupture_rate": float(rupture.mean()),                  # fraction of rupture days
+            "weekend_vs_weekday_drift_multiplier": float(weekend_multiplier),
+        }
+
+        # Policy vs non-policy variance (if provided)
+        policy_breakdown: Optional[Dict[str, Any]] = None
+        if cfg.policy_col and (cfg.policy_col in df_out.columns):
+            pc = df_out[cfg.policy_col].astype(bool)
+            def econ_slice(mask: pd.Series) -> Dict[str, Any]:
+                sl = df_out[mask]
+                if sl.empty:
+                    return {"n": 0, "ruptures": 0, "total_loss": 0.0,
+                            "loss_per_unit_mean": 0.0, "mean_drift": 0.0, "std_drift": 0.0}
+                loss_sl = pd.to_numeric(sl["loss"], errors="coerce").fillna(0.0)
+                denom_sl = (pd.to_numeric(sl["Actual"], errors="coerce").abs() + eps)
+                drift_sl = pd.to_numeric(sl["drift"], errors="coerce").fillna(0.0)
+                d = (loss_sl / denom_sl).replace([np.inf, -np.inf], np.nan).fillna(0.0)
+                return {
+                    "n": int(len(sl)),
+                    "ruptures": int(sl["rupture"].sum()),
+                    "total_loss": float(loss_sl.sum()),
+                    "loss_per_unit_mean": float(d.mean()),
+                    "mean_drift": float(drift_sl.mean()),
+                    "std_drift": float(drift_sl.std(ddof=0)),
+                }
+            policy_breakdown = {
+                "policy_true": econ_slice(pc),
+                "policy_false": econ_slice(~pc),
+            }
+            alignment["policy_drift_std_multiplier"] = (
+                (policy_breakdown["policy_true"]["std_drift"] / max(policy_breakdown["policy_false"]["std_drift"], 1e-9))
+                if policy_breakdown["policy_true"]["n"] and policy_breakdown["policy_false"]["n"] else 0.0
+            )
+
+        # ---------------- Optional segment breakdown ----------------
         by_group: Optional[Dict[str, Any]] = None
         if cfg.groupby and (cfg.groupby in df_out.columns):
             by_group = {}
@@ -255,42 +326,31 @@ class EpistemicAnalytics:
                     "loss": float(pd.to_numeric(sub["loss"], errors="coerce").fillna(0.0).sum()),
                     "on_target_rate": float(on_t_g.mean()) if len(sub) else 0.0,
                     "severe_rate": float(severe_g.mean()) if len(sub) else 0.0,
+                    "mean_drift": float(drift_g.mean()) if len(sub) else 0.0,
                 }
 
-        # Optional policy vs non-policy economics
-        policy_breakdown: Optional[Dict[str, Any]] = None
-        if cfg.policy_col and (cfg.policy_col in df_out.columns):
-            pc = df_out[cfg.policy_col].astype(bool)
-
-            def econ_slice(mask: pd.Series) -> Dict[str, Any]:
-                sl = df_out[mask]
-                if sl.empty:
-                    return {"n": 0, "ruptures": 0, "total_loss": 0.0,
-                            "loss_per_unit_mean": 0.0, "mean_drift": 0.0}
-                loss_sl = pd.to_numeric(sl["loss"], errors="coerce").fillna(0.0)
-                denom_sl = (pd.to_numeric(sl["Actual"], errors="coerce").abs() + eps)
-                drift_sl = pd.to_numeric(sl["drift"], errors="coerce").fillna(0.0)
-                d = (loss_sl / denom_sl).replace([np.inf, -np.inf], np.nan).fillna(0.0)
-                return {
-                    "n": int(len(sl)),
-                    "ruptures": int(sl["rupture"].sum()),
-                    "total_loss": float(loss_sl.sum()),
-                    "loss_per_unit_mean": float(d.mean()),
-                    "mean_drift": float(drift_sl.mean()) if len(sl) else 0.0,
-                }
-
-            policy_breakdown = {
-                "policy_true": econ_slice(pc),
-                "policy_false": econ_slice(~pc),
-            }
+        # ---------------- Custom diagnostics plug-ins ----------------
+        custom_out: Dict[str, Any] = {}
+        for name, fn in _CUSTOM_DIAG.items():
+            try:
+                res = fn(df_out, cfg)
+                if isinstance(res, dict):
+                    custom_out[name] = res
+            except Exception as e:
+                custom_out[name] = {"error": f"{type(e).__name__}: {e}"}
 
         out: Dict[str, Any] = {
             "economics": econ,
             "epistemic": epistemic,
-            "diagnostics": diag,
+            "diagnostics": {
+                **diag,
+                "alignment": alignment,
+            },
         }
         if by_group is not None:
             out["by_group"] = by_group
         if policy_breakdown is not None:
             out["policy_breakdown"] = policy_breakdown
+        if custom_out:
+            out["custom"] = custom_out
         return out
