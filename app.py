@@ -108,20 +108,19 @@ diag = EpistemicAnalytics.enrich(df_out, EpistemicConfig(baseline_window=28, exp
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 k1, k2, k3, k4, k5 = st.columns([1.2, 1, 1, 1, 1])
 
-def kpi(col, label, value):
+def kpi(col, label, value_text):
     with col:
         st.markdown(
             f'<div class="kpi-card"><div class="kpi-label">{label}</div>'
-            f'<div class="kpi-value">{value}</div></div>',
+            f'<div class="kpi-value">{value_text}</div></div>',
             unsafe_allow_html=True,
         )
 
 kpi(k1, "Total Loss", f"{report['summary']['total_loss']:.2f}")
-kpi(k2, "Ruptures", f"{report['summary']['ruptures']}")
+kpi(k2, "Ruptures", f"{report['summary']['ruptures']:.0f}")
 kpi(k3, "Mean Drift", f"{report['summary']['mean_drift']:.2f}")
 kpi(k4, "Scope Score", f"{diag['epistemic']['scope_score_0to1']:.2f}")
-kpi(k5, "PSI", f"{diag['epistemic']['psi']:.3f}")
-
+kpi(k5, "PSI", f"{diag['epistemic']['psi']:.2f}")
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
@@ -256,6 +255,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
