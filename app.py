@@ -116,69 +116,72 @@ kpi(k5, "PSI", f"{diag['epistemic']['psi']:.3f}")
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
-    """Return rolling mean and std; robust to short series."""
     s = y.astype(float)
     m = s.rolling(window=window, min_periods=max(2, window // 2)).mean()
     std = s.rolling(window=window, min_periods=max(2, window // 2)).std(ddof=0)
     return pd.DataFrame({"mean": m, "lo": m - std, "hi": m + std})
 
-def fig_drift_vs_theta(frame: pd.DataFrame, date_col="Date") -> go.Figure:
-    band = _rolling_band(frame["drift"], window=7)
+def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date", show_mean: bool = True) -> go.Figure:
+    # Palette (dark theme)
+    clr_band   = "rgba(255,255,255,0.06)"     # volatility band fill
+    clr_drift  = "rgba(235,235,235,1.0)"      # primary line (neutral)
+    clr_theta  = "rgba(160,160,160,1.0)"      # threshold (muted grey)
+    clr_mean   = "rgba(200,200,200,0.55)"     # rolling mean (thin)
+    clr_rupt   = "rgba(232,73,73,1.0)"        # rupture markers (only red on chart)
 
+    band = _rolling_band(frame["drift"], window=7)
     fig = go.Figure()
 
-    # Volatility band (±1σ around rolling mean)
+    # Volatility band (±1σ)
     fig.add_traces([
-        go.Scatter(
-            x=frame[date_col], y=band["hi"], line=dict(width=0), showlegend=False, hoverinfo="skip"
-        ),
+        go.Scatter(x=frame[date_col], y=band["hi"], line=dict(width=0), showlegend=False, hoverinfo="skip"),
         go.Scatter(
             x=frame[date_col], y=band["lo"],
-            fill="tonexty", fillcolor="rgba(100,100,255,0.08)",
-            line=dict(width=0), showlegend=False, hoverinfo="skip"
+            fill="tonexty", fillcolor=clr_band,
+            line=dict(width=0), showlegend=False, hoverinfo="skip",
+            name="Volatility band"
         ),
     ])
 
-    # Drift & Threshold
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["drift"], mode="lines", name="Drift"))
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["Theta"], mode="lines", name="Threshold"))
+    # Drift (primary)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["drift"],
+        mode="lines", name="Drift",
+        line=dict(width=2, color=clr_drift)
+    ))
 
-    # Rupture markers
+    # Threshold (reference)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["Theta"],
+        mode="lines", name="Threshold",
+        line=dict(width=1.5, color=clr_theta)
+    ))
+
+    # Rolling mean (optional, thin)
+    if show_mean:
+        fig.add_trace(go.Scatter(
+            x=frame[date_col], y=band["mean"],
+            mode="lines", name="Mean",
+            line=dict(width=1, color=clr_mean, dash="dot")
+        ))
+
+    # Rupture markers (red)
     r = frame[frame["rupture"]]
     if not r.empty:
-        fig.add_trace(
-            go.Scatter(
-                x=r[date_col], y=r["drift"],
-                mode="markers", name="Rupture",
-                marker=dict(size=8, symbol="x")
-            )
-        )
+        fig.add_trace(go.Scatter(
+            x=r[date_col], y=r["drift"],
+            mode="markers", name="Rupture",
+            marker=dict(size=7, symbol="x", color=clr_rupt),
+        ))
 
     fig.update_layout(
-        margin=dict(l=0, r=0, t=8, b=0),
+        margin=dict(l=0, r=0, t=6, b=0),
         legend=dict(orientation="h", x=0, y=1.08),
         xaxis=dict(showgrid=False),
         yaxis=dict(showgrid=True, gridcolor="rgba(255,255,255,0.06)")
     )
     return fig
 
-def fig_segment_heatmap(frame: pd.DataFrame, seg_col: str, date_col="Date"):
-    if not seg_col or seg_col not in frame.columns:
-        return None
-    pivot = frame.pivot_table(index=seg_col, columns=date_col, values="rupture_prob", aggfunc="mean").sort_index()
-    if pivot.empty:
-        return None
-    fig = px.imshow(
-        pivot.values, x=pivot.columns, y=pivot.index,
-        aspect="auto", labels=dict(color="Rupture probability"),
-    )
-    fig.update_layout(margin=dict(l=0, r=0, t=8, b=0))
-    return fig
-
-st.plotly_chart(fig_drift_vs_theta(df_out), use_container_width=True)
-hm = fig_segment_heatmap(df_out, groupby)
-if hm is not None:
-    st.plotly_chart(hm, use_container_width=True)
 
 
 # ---------------- Details ----------------
@@ -228,6 +231,7 @@ with st.expander("Download"):
         file_name="qsi_report.json",
         mime="application/json",
     )
+
 
 
 
