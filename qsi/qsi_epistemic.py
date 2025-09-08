@@ -1,7 +1,7 @@
 # qsi_epistemic.py
 from __future__ import annotations
 from dataclasses import dataclass, replace
-from typing import Optional, Dict, Any, Tuple, Callable, List
+from typing import Optional, Dict, Any, Tuple, Callable, List, Sequence
 import numpy as np
 import pandas as pd
 
@@ -56,10 +56,46 @@ class EpistemicConfig:
     groupby: Optional[str] = None          # segment column (if present)
     policy_col: Optional[str] = None       # boolean column (if present)
 
-    # ---- small validator to keep UI inputs safe ----
+    # ---- FULLY DYNAMIC knobs (no statics) ----
+    # Quantiles used in diagnostic summaries (user-overridable via UI)
+    # Example UI input: "0.05,0.50,0.95"
+    quantiles: Tuple[float, ...] = (0.05, 0.50, 0.95)
+
+    # Pareto share fraction for “top-X% days drive Y% loss”
+    pareto_top_frac: float = 0.20          # user can set 0.10, 0.25, etc.
+
+    # Weekend definition as weekday indices (0=Mon ... 6=Sun). User sets e.g. "5,6" for Sat/Sun.
+    weekend_days: Tuple[int, ...] = (5, 6)
+
+    # ---- validator (keeps UI inputs safe but everything is overridable) ----
     def validate(self) -> "EpistemicConfig":
         def clamp(x, lo, hi): 
             return float(min(max(x, lo), hi))
+
+        # normalize quantiles: clamp, unique, sorted
+        q_clean: List[float] = []
+        for q in self.quantiles:
+            try:
+                q_clean.append(clamp(float(q), 0.0, 1.0))
+            except Exception:
+                continue
+        q_clean = sorted(set(q_clean))
+        if len(q_clean) == 0:
+            q_clean = [0.05, 0.50, 0.95]  # still dynamic; only as a safety net
+
+        # normalize weekend days: ints in 0..6, unique & sorted
+        wd: List[int] = []
+        for d in self.weekend_days:
+            try:
+                di = int(d)
+                if 0 <= di <= 6:
+                    wd.append(di)
+            except Exception:
+                continue
+        wd = sorted(set(wd))
+        if len(wd) == 0:
+            wd = [5, 6]  # safety net: Sat/Sun
+
         return replace(
             self,
             baseline_window=max(1, int(self.baseline_window)),
@@ -75,6 +111,9 @@ class EpistemicConfig:
             severe_pct=clamp(self.severe_pct, 0.0, 1.0),
             recent_window=(None if (self.recent_window is None or int(self.recent_window) <= 0)
                            else int(self.recent_window)),
+            quantiles=tuple(q_clean),
+            pareto_top_frac=float(clamp(self.pareto_top_frac, 0.0, 1.0)),
+            weekend_days=tuple(wd),
         )
 
 
@@ -161,17 +200,18 @@ class EpistemicAnalytics:
 
     # ---------- Board-aligned extras ----------
     @staticmethod
-    def _pareto_share(loss_series: pd.Series, top_frac: float = 0.20) -> float:
+    def _pareto_share(loss_series: pd.Series, top_frac: float) -> float:
         s = pd.to_numeric(loss_series, errors="coerce").fillna(0.0).sort_values(ascending=False)
         if len(s) == 0:
             return 0.0
-        k = max(1, int(np.ceil(top_frac * len(s))))
+        k = max(1, int(np.ceil(float(top_frac) * len(s))))
         return float(s.iloc[:k].sum() / max(s.sum(), 1e-9))
 
     @staticmethod
-    def _weekend_mask(dts: pd.Series) -> pd.Series:
-        # Saturday(5) / Sunday(6)
-        return pd.to_datetime(dts, errors="coerce").dt.weekday.isin([5, 6])
+    def _weekend_mask(dts: pd.Series, weekend_days: Sequence[int]) -> pd.Series:
+        # weekday: 0=Mon ... 6=Sun
+        wd = set(int(d) for d in weekend_days if 0 <= int(d) <= 6)
+        return pd.to_datetime(dts, errors="coerce").dt.weekday.isin(sorted(wd))
 
     # ---------- Public: enrich ----------
     @staticmethod
@@ -246,37 +286,37 @@ class EpistemicAnalytics:
             "expiry_estimate_date": expiry_date,
         }
 
-        # Diagnostics: quantiles & windows
-        def qdict(s: pd.Series) -> Dict[str, float]:
+        # Diagnostics: quantiles & windows (QUANTILES NOW FULLY DYNAMIC)
+        def qdict(s: pd.Series, qs: Tuple[float, ...]) -> Dict[str, float]:
             s = pd.to_numeric(s, errors="coerce").dropna()
+            labels = [f"q{int(round(q*100)):02d}" for q in qs]
             if len(s) == 0:
-                return {"q05": 0.0, "q50": 0.0, "q95": 0.0}
-            return {
-                "q05": float(np.quantile(s, 0.05)),
-                "q50": float(np.quantile(s, 0.50)),
-                "q95": float(np.quantile(s, 0.95)),
-            }
+                return {lbl: 0.0 for lbl in labels}
+            vals = np.quantile(s, qs)
+            return {lbl: float(v) for lbl, v in zip(labels, vals)}
 
         diag = {
             "baseline_window_used": int(len(baseline)),
             "recent_window_used": int(len(recent)),
-            "baseline_quantiles": qdict(baseline),
-            "recent_quantiles": qdict(recent),
+            "baseline_quantiles": qdict(baseline, cfg.quantiles),
+            "recent_quantiles":   qdict(recent,   cfg.quantiles),
+            "quantiles_used":     list(cfg.quantiles),
         }
 
-        # ---------------- Board-aligned alignment block ----------------
-        top20_share = EpistemicAnalytics._pareto_share(loss, top_frac=0.20)
-        weekend = EpistemicAnalytics._weekend_mask(date)
+        # ---------------- Alignment block (all dynamic) ----------------
+        top_share = EpistemicAnalytics._pareto_share(loss, top_frac=cfg.pareto_top_frac)
+        weekend = EpistemicAnalytics._weekend_mask(date, cfg.weekend_days)
         weekday = ~weekend
 
-        # weekend vs weekday drift (guard for empties)
         wk_drift = float(pd.to_numeric(drift[weekend], errors="coerce").dropna().mean()) if weekend.any() else 0.0
         wd_drift = float(pd.to_numeric(drift[weekday], errors="coerce").dropna().mean()) if weekday.any() else 0.0
         weekend_multiplier = (wk_drift / wd_drift) if wd_drift > 0 else (np.inf if wk_drift > 0 else 0.0)
 
         alignment = {
-            "pareto_top20_loss_share": float(top20_share),          # ~0.71 in your study
-            "rupture_rate": float(rupture.mean()),                  # fraction of rupture days
+            "pareto_top_frac_used": float(cfg.pareto_top_frac),
+            "pareto_top_loss_share": float(top_share),
+            "rupture_rate": float(rupture.mean()),
+            "weekend_days_used": list(cfg.weekend_days),
             "weekend_vs_weekday_drift_multiplier": float(weekend_multiplier),
         }
 
@@ -306,7 +346,8 @@ class EpistemicAnalytics:
                 "policy_false": econ_slice(~pc),
             }
             alignment["policy_drift_std_multiplier"] = (
-                (policy_breakdown["policy_true"]["std_drift"] / max(policy_breakdown["policy_false"]["std_drift"], 1e-9))
+                (policy_breakdown["policy_true"]["std_drift"] /
+                 max(policy_breakdown["policy_false"]["std_drift"], 1e-9))
                 if policy_breakdown["policy_true"]["n"] and policy_breakdown["policy_false"]["n"] else 0.0
             )
 
@@ -322,7 +363,7 @@ class EpistemicAnalytics:
                 severe_g = (pct_err_g >= cfg.severe_pct)
                 by_group[str(g)] = {
                     "n": int(len(sub)),
-                    "ruptures": int(sub["rupture"].sum()),
+                    "ruptures": int(sub["rupture"].sum())),
                     "loss": float(pd.to_numeric(sub["loss"], errors="coerce").fillna(0.0).sum()),
                     "on_target_rate": float(on_t_g.mean()) if len(sub) else 0.0,
                     "severe_rate": float(severe_g.mean()) if len(sub) else 0.0,
