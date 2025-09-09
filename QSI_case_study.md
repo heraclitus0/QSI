@@ -1,129 +1,118 @@
-# Case Study — QSI in the Wild
-*Hyderabad franchise network · Restaurant supply chain · May–June 2025 (61 operational days)*
-
-> **What this is:** a case narrative—**how** QSI was set up, **what changed operationally**, and **what we’d do differently**.  
-> **What this is not:** a reprint of the full analytics. (Those exhibits live in the report.)
+# Case Study — QSI in a Restaurant Supply Chain
+*Hyderabad franchise network · May–June 2025 (61 operational days)*
 
 ---
 
-## 1) Executive Snapshot (one paragraph)
-QSI was deployed to turn day‑level procurement noise into **priced, stoppable events**. Over 61 days it identified **seven rupture days** that explained **all preventable loss** (₹31,009; ~1.08% of spend). Normal weeks stayed quiet on **Θ=98**; during policy weeks, a **tighter profile** (Θ ~83–85, cooldown 10, ₹ floor 3,000) captured additional high‑value spikes **without flooding** operators. The value came not from “more alerts,” but from **clarity and discipline** around what to do **only** on spike days.
+## 1. Executive Summary
+- **Preventable loss identified:** **₹31,009** across **7 rupture days** (**11.5%** of days).  
+- **Total spend:** **₹2,864,379.50**; **average daily spend:** **₹46,957**; **leakage rate:** **1.0826% of spend**.  
+- **Operating approach:** Maintain **Base Θ = 98** in normal weeks. In policy windows, apply a **Policy profile** (Θ **83–85**, cooldown **10**, ₹ loss‑floor **3,000**) to capture economically material spikes while containing alert volume.  
+- **EBITDA effect (per outlet, annualized):** baseline at risk **~₹185,546/year**; reduction of **50–60%** yields **~₹92,773–₹111,327/year** EBITDA uplift.  
+- **Concentration:** Preventable loss was concentrated in a small number of short, high‑amplitude spike days.
 
 ---
 
-## 2) Case Background & Hypothesis
-- **Context:** Franchise‑level procurement of Sona Masoori rice; periodic **policy shocks** (ration/bonus) distort local prices and availability.  
-- **Known failure:** Monthly view hides leakage; ERP forecasts are **too smooth** for day‑level action.  
-- **Hypothesis:** Loss is **heavy‑tailed** (a few spike days). If we price only **true ruptures** (drift > Θ) and execute a short SOP, we reduce leakage materially **without** burdening normal days.
+## 2. Context and Objectives
+- **Context:** Day‑level procurement of Sona Masoori rice in a multi‑outlet franchise network. Periodic government interventions (ration and bonus cycles) distort local prices and availability.  
+- **Problem:** Monthly aggregates and ERP smoothing obscure day‑level financial leakage; line managers lack priced, actionable triggers.  
+- **Objective:** Detect and price only **true ruptures** (when `|Forecast − Actual| > Θ`), produce dated **rupture tickets** (₹ loss = drift × unit cost), and execute a concise operating response on those days.
 
 ---
 
-## 3) Design & Setup (two days)
-**Unit of analysis:** calendar day per outlet.  
-**Signal:** drift = |Forecast − Actual|. **Price:** loss = drift × unit cost (only when drift > Θ).  
-**Profiles:**  
-- **Normal:** Θ=98, cooldown 20, prob slope b=6.0 (quiet, high SNR).  
-- **Policy:** Θ≈83–85 (−15%), cooldown 10, ₹ floor 3,000 (surgical, time‑boxed).  
-**Governance:** alert budget ≤5/week (policy); auto‑restore to Normal +2 days post‑policy.  
-**Data:** CSV ingestion; no imputation; day‑level tickets generated for audit.
+## 3. Methodology
+- **Signal:** `Drift = |Forecast − Actual|`.  
+- **Trigger:** a day is a rupture when `Drift > Θ`.  
+- **Pricing:** `Loss = Drift × Unit_Cost` **only on rupture days** (no penalties on normal days).  
+- **Profiles:**  
+  - **Normal:** Θ = 98; cooldown = 20; probability slope b = 6.0.  
+  - **Policy (windowed):** Θ ≈ 83–85 (≈ −15%); cooldown = 10; ₹ loss‑floor = 3,000; alert budget ≤ 5/week; auto‑restore +2 days post‑window.
 
 ---
 
-## 4) Intervention (what actually changed on the ground)
-- **Before:** operators reacted variably; vendor calls and order splits were **ad‑hoc**.  
-- **After:** a **breach ticket** triggered a 5‑step SOP:  
-  1) Call vendor (check price & capacity)  
-  2) Split order (primary/secondary)  
-  3) Shift purchase window (intra‑day/time‑of‑day)  
-  4) Defer 1 day if stock buffer ≥1 day  
-  5) Tag root cause *(policy/vendor/demand/strategic)*  
-- **Vendor scorecards** were built from rupture tickets (breach × ₹ loss) → **rate/volume reallocation** discussions moved from opinion to ledger.
+## 4. Operational Outcomes
+- **Rupture days:** **7**; preventable loss fully concentrated in these days.  
+- **Distribution shift in policy weeks:** non‑policy → policy medians **10 → 50**, P75 **30 → 80**, means **21.0 → 53.8**.  
+- **Interpretation:** Base Θ = 98 is appropriate for normal weeks. A temporary ~15% tightening in policy weeks is justified to intercept the economically material middle of the shifted distribution while remaining within alert capacity.
+
+### Figure 1. Rupture Timeline (optional)
+![Rupture timeline — Θ = 98 baseline](graphs/rupre_plot.png)
+*Ruptures are brief and high‑amplitude; alerts are sparse in normal weeks.*
 
 ---
 
-## 5) What Happened (narrative, not charts)
-- **Normal weeks:** QSI remained **quiet**; no alert fatigue. Θ=98 proved **well‑placed**—noise ignored, tails caught.  
-- **Policy weeks:** the distribution **shifted right**; switching to the Policy profile produced **a handful of extra alerts**, each economically meaningful (₹‑material via floor).  
-- **Clustering:** all preventable loss sat on **7 of 61 days**; spikes were **short and sharp** (1–2 days).  
-- **Operator load:** contained within the **≤5/week** budget; no service disruption.
+## 5. Policy Profile (UI‑Aligned)
+**Purpose:** Apply a tighter detection profile only in government‑distorted weeks; automatically restore the normal profile after the window.
+
+**Controls and ownership**
+
+| Control | Normal | Policy (window only) | Rationale | Owner |
+|---|---:|---:|---|---|
+| Threshold (Θ) | 98 | 83–85 | Policy weeks shift drift 2–3× right; ~15% dip captures ₹‑material spikes. | Operations |
+| Cooldown | 20 | 10 | Enable action on clustered spikes. | Operations |
+| Probability shaping | mid 0.0; slope b=6.0 | mid 0.5 or b=4–5 | Avoid near‑threshold saturation at ~1.0. | Analytics |
+| ₹ Loss floor | Off | On at ₹3,000 | Capture medium drift on high‑price days. | Finance |
+| Alert budget | n/a | ≤ 5 per week | Capacity guardrail. | Operations |
+| Auto‑restore | n/a | +2 days post‑window | Prevent lingering policy mode. | Analytics |
+
+**Activation and deactivation**  
+- **Activate** on pre‑announced ration/MSP/bonus/festival windows; optionally if mandi price > +5% d/d **and** ECDF median lifts (two‑signal rule).  
+- **Deactivate** at window end **+2 days** (hysteresis), then restore the Normal profile.
+
+**Guardrails**  
+- Policy Θ not below the **policy‑week 80th percentile** of drift.  
+- If alert volume exceeds budget, raise Θ by +2 points or increase the ₹ floor to ₹3,500.  
+- Strategic purchases tagged and excluded from vendor penalties (retained for finance).
 
 ---
 
-## 6) Decision Log (anonymized pattern, R1–R7)
-- **R1–R2:** Vendor price check + split order → realized unit cost improvement next day.  
-- **R3:** Shifted purchase window; avoided late‑day premium.  
-- **R4–R5:** Deferred one day on buffer; avoided policy‑driven overpay.  
-- **R6:** Strategic buy tagged; **excluded** from vendor penalty but kept for finance.  
-- **R7:** Policy‑week doublet; cooldown 10 allowed back‑to‑back action.  
-**Ticket economics:** typical **₹4.6k–₹5.6k** each; total **₹31,009** across the seven.
+## 6. Operating Procedure on a Rupture Ticket
+1. Call vendor (price and capacity confirmation).  
+2. Split order (primary and secondary supplier).  
+3. Shift purchase window (time‑of‑day).  
+4. Defer one day if stock buffer ≥ one day.  
+5. Tag root cause (policy / vendor / demand / strategic).
 
 ---
 
-## 7) Economics (how finance read it)
-- **Leakage rate (from tickets):** ~**1.0826% of spend**.  
-- **EBITDA mapping:** every ₹ saved is **cost‑out** → **1:1 to EBITDA**.  
-- **Program effect:** a realistic **50–60% reduction** yields **~0.54–0.65%** EBITDA defense.  
-- **Per ₹1 crore spend:** **₹54k–₹65k** uplift at 50–60% reduction.
+## 7. Financial Impact (EBITDA)
+- **Leakage rate:** **1.0826%** of spend.  
+- **Baseline at risk (annualized per outlet):** **~₹185,546/year**.  
+- **EBITDA uplift (per outlet):** **~₹92,773–₹111,327/year** for a **50–60%** reduction.  
+- **Per ₹1 crore of addressable spend:** **₹54,129–₹64,954/year** uplift for **50–60%** reduction.
 
 ---
 
-## 8) What Worked / What Didn’t
-**Worked**  
-- Quiet baseline; **no** operator fatigue.  
-- **Policy profile** captured the “expensive middle” without drowning the team.  
-- **Tickets** changed the vendor conversation (from anecdotes to numbers).
-
-**Didn’t / Frictions**  
-- Some **strategic buys** initially flagged as loss → solved with tags and exclusions for penalties.  
-- **After‑policy lag** risk → fixed with **auto‑restore +2 days**.  
-- **Bullwhip proof** limited by single‑tier data (we used a proxy; plan multi‑tier capture).
+## 8. Governance and Performance Management
+- **KPIs:** prevented ₹ per rupture; alert conversion (SOP executed / rupture alerts); vendor breach × ₹ loss (scorecards); alert budget adherence; leakage reduction (rolling 90‑day); false‑positive rate.  
+- **Decision rights:** operations own thresholds and cooldowns; analytics own probability shaping and auto‑restore; finance owns the ₹ floor and vendor scorecard consequences.
 
 ---
 
-## 9) External Validity & Transfer
-- **Where it ports well:** commodities with **policy cadence** (staples, fuel‑indexed inputs), retail replenishment, logistics day‑slots.  
-- **Pre‑conditions:** day‑level records; a secondary supplier; minimal stock buffer (≥1 day) to enable deferral.  
-- **Watch‑outs:** single‑source vendors, festival surges, and sudden supplier stockouts (use the ₹ floor trigger).
+## 9. Risks and Controls
+- **Alert fatigue:** minimum‑percentile guardrail, weekly alert budget, and auto‑restore.  
+- **False identification of policy weeks:** calendar confirmation or two‑signal rule (price + ECDF).  
+- **Over‑steer in normal weeks:** Normal profile remains at Θ = 98.  
+- **Data anomalies / strategic purchases:** ticket‑level audit trail; strategic tags excluded from penalties.
 
 ---
 
-## 10) Replication Protocol (7‑day rollout)
-**Day 0:** Load CSV; confirm Θ=98; define policy dates.  
-**Day 1–2:** Shadow run; log would‑have alerts; set **alert budget ≤5/week**.  
-**Day 3:** Go live; activate tickets; brief SOP to outlet managers.  
-**Day 4–5:** Audit two tickets end‑to‑end; verify vendor actions & prices.  
-**Day 6:** Review budget; if >5/week, raise Θ by +2 or ₹ floor to ₹3,500.  
-**Day 7:** Confirm auto‑restore logic and policy calendar for next month.
+## 10. Implementation Plan (7 Days)
+- **Day 0:** Load data; confirm Base Θ = 98; define policy dates.  
+- **Days 1–2:** Shadow mode; measure would‑have alerts; set alert budget (≤5/week).  
+- **Day 3:** Go live; enable rupture tickets; brief SOP.  
+- **Days 4–5:** Audit two tickets end‑to‑end (actions and pricing).  
+- **Day 6:** If budget exceeded, raise Θ by +2 or increase the ₹ floor.  
+- **Day 7:** Confirm auto‑restore and next policy calendar.
 
 ---
 
-## 11) Risk Register & Neutralizers
-- **Alert fatigue** → guardrail (policy Θ ≥ policy‑week 80th percentile) + weekly budget + auto‑restore.  
-- **False policy windows** → require calendar confirmation **or** two‑signal trigger (price jump + ECDF shift).  
-- **Mis‑scoring strategic buys** → mandatory tag; excluded from vendor penalties.  
-- **Data anomalies** → tickets retain raw quantities, costs, and timestamps for audit.
-
----
-
-## 12) What We’d Change Next Run
-1) Add **supplier‑side orders/inventory** to evidence true bullwhip and negotiate rate protections.  
-2) Trial **weekday lane adjustments** (this run showed weekday‑heavy central drift).  
-3) Pilot **probability mid 0.5** in policy weeks to prevent near‑threshold saturation.
-
----
-
-## 13) Provenance (for audit)
+## 11. Provenance
 - **Source files:** day‑level procurement CSV; QSI rupture tickets CSV.  
-- **Computation:** direct from source; no imputation; losses priced only on **drift > Θ**.  
-- **Settings used:** Normal Θ=98; Policy profile Θ≈83–85, cooldown 10, ₹ floor 3,000; alert budget ≤5/week; auto‑restore +2 days.
+- **Computation:** direct from source; losses booked only on days with `Drift > Θ`.  
+- **Run settings:** Normal profile as stated; Policy profile applied only within defined windows.
 
 ---
 
-**Bottom line:** This case confirms the operating thesis—**a few policy‑sensitive spike days cause nearly all leakage**. QSI’s discipline is to **be quiet by default** and **surgical on those days**, converting noise into **priced decisions** that flow directly to **EBITDA**.
-
-
-### Figure — Rupture Timeline (QSI)
-![Rupture timeline — short, high‑amplitude spikes; Θ = 98 baseline](graphs/rupre_plot.png)
-
-*Interpretation:* Ruptures are brief and high‑amplitude. Alerts remain sparse in normal weeks (Θ=98), with spikes concentrated on a few days.
+## 12. Conclusion
+Preventable loss is concentrated in a small number of **policy‑sensitive spike days**. A **quiet baseline** (Θ = 98) combined with a **windowed Policy profile** delivers measurable cost control with limited operational load and a direct, transparent contribution to **EBITDA**.
 
