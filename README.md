@@ -1,6 +1,6 @@
-# QSI — Quantitative Stochastic Intelligence  
-
-<img src="https://via.placeholder.com/600x180.png?text=QSI+Logo" alt="QSI Logo" width="600"/>
+<p align="center">
+  <img src="docs/brand/QSI_logo.png" alt="QSI logo" width="96" />
+</p>
 
 ---
 
