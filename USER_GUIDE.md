@@ -1,135 +1,140 @@
 # QSI User Guide
 
-## Introduction
-Quantitative Stochastic Intelligence (QSI) is a diagnostic system for detecting forecast drifts, rupture events, and hidden economic loss. This guide describes how to operate the QSI Streamlit application, interpret its outputs, and configure its advanced controls.
-
-The guide is organized into:
-1. Interface Overview
-2. Configuration Controls
-3. Analysis Outputs
-4. Board-Level Diagnostics
-5. Developer Mode
-6. Use Cases
+Quantitative Stochastic Intelligence (QSI) is an adaptive rupture detection and epistemic diagnostics engine.  
+It integrates native statistical thresholds, EWMA smoothing, and Cognize-based metapolicies into one framework.  
+This guide explains each control, parameter, and output so that users can confidently apply QSI across domains.
 
 ---
 
-## 1. Interface Overview
-The Streamlit application provides three panels:
+## 1. Getting Started
 
-- **Configuration Panel**: Interactive controls for selecting the analysis engine and adjusting thresholds, probabilities, and policies.  
-- **Analysis Panel**: Visualization of drifts, thresholds, ruptures, and associated losses.  
-- **Diagnostics Panel**: Board-level metrics including scope, stability indices, breach projections, and policy breakdowns.  
-
----
-
-## 2. Configuration Controls
-
-### Engine Selection
-- **Native**: Baseline memory model using static thresholds.  
-- **EWMA**: Thresholds adapt to volatility via Exponentially Weighted Moving Average.  
-- **Cognize**: Advanced epistemic engine with policy management (requires Cognize library).  
-- **Graph Mode**: Cognize extended to multiple segments, with coupling effects between them.  
-
-**Guidance**:  
-- Use *Native* for simple, stable series.  
-- Use *EWMA* for noisy data requiring adaptive smoothing.  
-- Use *Cognize* for complex, adaptive scenarios.  
-- Use *Graph Mode* for multi-segment dependencies.  
-
-### Threshold Parameters (Î)
-- **Base Threshold**: Initial sensitivity to drift.  
-- **a (Sensitivity)**: Degree to which accumulated memory raises the threshold.  
-- **c (Memory Accumulation)**: Rate at which drift compounds in memory.  
-- **Ï (Noise)**: Stochastic fluctuation applied to the threshold.  
-
-**Interpretation**:  
-Threshold determines when a deviation becomes a rupture. Lower thresholds detect smaller deviations; higher thresholds reduce false positives.  
-
-### Rupture Probability
-- **k (Slope)**: Sharpness of the probability curve.  
-- **Midpoint**: Center of the probability curve (rupture probability = 0.5).  
-
-**Interpretation**:  
-Defines how aggressively QSI converts drift margins into rupture probabilities rather than binary signals.  
-
-### EWMA Parameters
-(Available when EWMA mode is selected.)  
-- **Alpha**: Responsiveness of smoothing (0.1 = slow, 0.8 = fast).  
-- **k**: Width of the adaptive band, relative to volatility.  
-
-### Cognize Meta-Policy
-(Available when Cognize is active.)  
-- **Epsilon**: Exploration rate; frequency of testing alternative policies.  
-- **Promote Margin**: Advantage required before promoting a new policy.  
-- **Cooldown Steps**: Minimum interval before switching policies again.  
-
-### Custom Models
-- **Custom Model**: Select an enterprise-defined threshold generator.  
-- **Custom Parameters**: Adjust the parameters of the custom model.  
-- **Respect Custom Î in Cognize**: Determines whether Cognize must follow the enterprise threshold rather than its own.  
-
----
-
-## 3. Analysis Outputs
-The analysis panel presents:  
-
-- **Drift Curve**: Absolute deviation between forecasts and actuals.  
-- **Threshold Curve (Î)**: Adaptive threshold line.  
-- **Rupture Markers**: Points where drift exceeds threshold.  
-- **Loss Curve**: Estimated monetary loss at rupture points.  
-
-Outputs can be downloaded as CSV (rupture events) or JSON (full report).  
-
----
-
-## 4. Board-Level Diagnostics
-Metrics are computed by the Epistemic Analytics module.  
-
-- **Scope Score**: Proportion of recent drifts falling within the baseline band.  
-- **Population Stability Index (PSI)**: Degree of distributional shift between baseline and recent drift.  
-- **ETA to Persistent Breach**: Projected time until sustained rupture conditions occur.  
-- **Pareto Loss Share**: Concentration of loss among top X% of days.  
-- **Weekend vs. Weekday Drift**: Relative volatility across calendar segments.  
-- **Policy Breakdown** (if applicable): Comparative drift and loss statistics between policy and non-policy groups.  
-- **Segment Breakdown** (if applicable): Drift and rupture statistics per SKU, region, or segment.  
-
----
-
-## 5. Developer Mode
-QSI can be used directly as a Python library:
+You can run QSI in two modes:
+- **Streamlit App**: Upload your dataset (`Date, Forecast, Actual, Unit_Cost`) and configure detection interactively.  
+- **Python API**: Import QSI in your own scripts.
 
 ```python
 from qsi import QSIEngine, QSIConfig, generate_dummy
 
-df = generate_dummy(days=60, segments=["SKU-A", "SKU-B"])
-cfg = QSIConfig(use_ewma=True, ewma_alpha=0.2, ewma_k=3.0)
+cfg = QSIConfig()
 engine = QSIEngine(cfg)
-df_out, report = engine.analyze(df, groupby="Segment")
-```
-
-Custom threshold models can be registered:
-
-```python
-from qsi.qsi_engine import register_custom_model
-
-def my_model(drift, params, df):
-    return drift.rolling(7).mean() * 1.2
-
-register_custom_model("my_theta", my_model)
+df_out, report = engine.analyze(df)
 ```
 
 ---
 
-## 6. Use Cases
-QSI is domain-agnostic and adaptable:
+## 2. Detection Engine Modes
 
-- **Supply Chains**: Detect demand forecast ruptures, safeguard margins.  
-- **Pharmaceuticals**: Monitor deviation in clinical trial outcomes.  
-- **Cybersecurity**: Identify anomalous drifts in access or transaction logs.  
-- **Finance**: Detect regime shifts in trading signals or risk exposures.  
-- **IoT and Sensors**: Real-time rupture detection in sensor networks.  
+- **Native Thresholds**: Base formula with memory accumulation and noise.  
+- **EWMA Threshold**: Exponentially Weighted Moving Average for adaptive smoothing.  
+- **Cognize**: Policy-driven metacontrol for adaptive, self-correcting thresholds.  
+- **Graph Mode**: Coupling across multiple segments (e.g., SKUs, regions).  
 
 ---
 
-## Conclusion
-QSI provides an adaptive framework for monitoring, diagnosing, and managing drift in volatile environments. Its design balances interpretability, configurability, and extensibility, enabling application across diverse industries.
+## 3. Threshold Parameters
+
+- **Base Threshold (Îâ):** Initial sensitivity to drift.  
+- **a (Sensitivity):** Degree to which accumulated memory (E) raises the threshold.  
+- **c (Memory Accumulation):** Rate at which drift compounds in memory.  
+- **Ï (Noise):** Stochastic fluctuation applied to the threshold.  
+
+**Interpretation:**  
+- Lower thresholds detect smaller deviations (sensitive but noisy).  
+- Higher thresholds filter noise but risk missing subtle ruptures.  
+
+---
+
+## 4. EWMA Parameters
+
+- **Î± (Alpha):** Weight given to recent drift values. Closer to 1 â faster adaptation.  
+- **k (Multiplier):** Number of standard deviations applied to define the threshold band.  
+
+**Use Case:** When markets are volatile and require adaptive smoothing.  
+
+---
+
+## 5. Cognize Metapolicy
+
+- **Îµ (Exploration):** Probability of exploring new policies.  
+- **Promote Margin:** How much better a candidate policy must perform before adoption.  
+- **Cooldown Steps:** Delay before the same policy is reconsidered.  
+
+**Use Case:** When you want the system to learn which thresholding strategy works best.  
+
+---
+
+## 6. Probability Model
+
+- **k (Slope):** Controls sharpness of probability curve around threshold.  
+- **Midpoint:** Defines margin at which rupture probability is 50%.  
+
+**Interpretation:** A steeper slope means âhardâ ruptures. A shallower slope means âsofterâ probability.  
+
+---
+
+## 7. Graph Parameters (Multi-Segment)
+
+- **Graph Damping:** Reduces cascade intensity across segments.  
+- **Max Graph Depth:** How far influence propagates across networked nodes.  
+
+**Use Case:** Multi-SKU, multi-region, or multi-asset systems where failures propagate.  
+
+---
+
+## 8. Epistemic Diagnostics
+
+QSI integrates board-level analytics for governance and systemic resilience:  
+
+- **Scope Score (0â1):** Fraction of recent drift contained within baseline band.  
+- **PSI (Population Stability Index):** Distribution shift indicator.  
+- **ETA (Expiry to Persistent Breach):** Projected time until consistent rupture.  
+- **Pareto Share:** Fraction of loss driven by top X% of days.  
+- **Weekend vs Weekday Multiplier:** Drift skew across calendar effects.  
+
+---
+
+## 9. Outputs
+
+- **Drift:** Absolute deviation between forecast and actual.  
+- **Theta (Î):** Applied threshold at each step.  
+- **Rupture:** Binary event when drift > Î.  
+- **Loss:** Economic impact (drift Ã unit cost).  
+- **Report JSON:** Structured summary for downstream systems.  
+
+---
+
+## 10. How to Use Each Toggle (Streamlit UI)
+
+- **Use EWMA Threshold:** Enables adaptive smoothing.  
+- **Enable Cognize:** Activates metapolicy learning.  
+- **Use Graph Mode:** Links segments dynamically.  
+- **Show Rolling Mean:** Adds contextual smoothing line.  
+- **Volatility Band Window:** Defines rolling window for Â±1Ï band.  
+- **Y-Grid:** Toggles vertical scale clarity.  
+
+---
+
+## 11. Best Practices
+
+- Start with **EWMA** for adaptive baselines.  
+- Enable **Cognize** when facing unpredictable environments.  
+- Use **Graph Mode** only when clear cross-segment dependencies exist.  
+- Review **Economics** and **Epistemic** sections before making board-level decisions.  
+
+---
+
+## 12. Example Workflow
+
+1. Upload CSV (`Date, Forecast, Actual, Unit_Cost`).  
+2. Select segmentation column if applicable.  
+3. Choose detection model (Native, EWMA, Cognize).  
+4. Tune threshold, memory, and noise parameters.  
+5. Analyze rupture events, losses, and diagnostics.  
+6. Export CSV/JSON for reporting or enterprise integration.  
+
+---
+
+## 13. Disclaimer
+
+QSI is an adaptive intelligence engine. Its outputs depend on configuration and data quality.  
+For mission-critical environments (e.g., healthcare, finance, infrastructure), validate before deployment.  
