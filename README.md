@@ -62,6 +62,23 @@ QSI is **domain-agnostic**. Example applications include:
 
 ---
 
+## Quick Start
+
+1. **Try it live**: [Launch QSI on Streamlit](https://zfy-aqshzphzm.streamlit.app/)  
+2. **Upload your data**: CSV with columns → `Date, Forecast, Actual, Unit_Cost`.  
+3. **Explore outputs**:  
+   - Ruptures flagged with drift × cost loss quantification  
+   - Policy-calibrated thresholds & diagnostics (Scope, PSI, ETA)  
+   - Interactive drift vs threshold plots & volatility bands  
+4. **Dive deeper**:  
+   - [Case Study — Hyderabad Pilot](link-to-case-study.pdf)  
+   - [Full Analytical Report](link-to-report.pdf)  
+   - [User Guide](link-to-user-guide.pdf)
+
+
+---
+
+
 ## Disclaimer
 
 QSI outputs are **calibration-dependent**.  
