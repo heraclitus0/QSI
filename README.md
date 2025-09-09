@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-<a href="https://zfy-aqshzphzm.streamlit.app/">
+<a href="https://zkvyksd6zuzfyaqshzphzm.streamlit.app/" target="_blank">
   <img src="https://img.shields.io/badge/Streamlit-Live-limegreen" alt="Streamlit App"/>
 </a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"/>
