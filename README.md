@@ -1,106 +1,134 @@
 <p align="center">
-  <img src="docs/brand/QSI_logo.png" alt="QSI logo" width="96" />
+  <img src="QSI_logo.png" alt="QSI Logo" width="120"/>
+</p>
+
+<h1 align="center">QSI — Quantitative Stochastic Intelligence</h1>
+
+<p align="center">
+  Adaptive rupture detection and epistemic diagnostics for dynamic systems.<br/>
+  <b>Policy-calibrated intelligence that learns from volatility.</b>
 </p>
 
 ---
 
-> **QSI** is an agnostic decision-intelligence layer.  
-> It governs the gap between **what was expected** and **what actually happened**,  
-> detecting ruptures, quantifying preventable losses, and translating volatility into board-level insight.  
+## Overview
+
+**QSI** (Quantitative Stochastic Intelligence) is a lightweight intelligence engine for analyzing forecast–actual systems under uncertainty.  
+It detects ruptures (large misalignments), estimates preventable losses, and provides epistemic diagnostics on stability, volatility, and systemic resilience.
+
+QSI is agnostic: it can be deployed anywhere drift matters — from **supply chains** to **finance**, **pharma**, **cybersecurity**, or **infrastructure**.
 
 ---
 
-## Why QSI?  
+## Features
 
-Forecasts fail. Plans drift. Models misalign.  
-QSI does not replace your models — it **sits above them**, continuously monitoring outcomes and exposing where volatility silently erodes value.  
-
-- **Not just anomaly detection** → QSI estimates *time to persistent breach* and *scope of alignment*.  
-- **Not a dashboard** → QSI generates intelligence streams that can be consumed by analysts, boards, or autonomous systems.  
-- **Not domain-locked** → supply chains, finance, pharma, cybersecurity — anywhere drift exists, QSI applies.  
-
----
-
-## Features  
-
-- **Rupture Analytics**: Detect when deviations exceed adaptive thresholds.  
-- **Economic Impact**: Quantify preventable losses in real currency, not abstract metrics.  
-- **Board Diagnostics**: Scope score, PSI, Pareto loss share, weekend vs weekday multipliers.  
-- **Policy Effectiveness**: Split outcomes by regulatory, operational, or business controls.  
-- **Cognize Integration**: Plug into self-adapting epistemic kernels for intelligent thresholds.  
-- **Custom Models**: Register bespoke enterprise rules for thresholds or diagnostics.  
-
----
-
-## Use Cases  
-
-QSI is **agnostic** — designed for *any* context where expected vs actual must be reconciled.  
-
-- **Forecast vs Actual Governance**  
-  Ensure your predictive models or planning systems remain aligned with reality.  
-
-- **Volatility & Breach Management**  
-  Anticipate when drifts will breach thresholds and act before losses lock in.  
-
-- **Scenario Translation for Boards**  
-  Convert technical volatility into strategic language — *“X% of days drove Y% of losses.”*  
-
-- **Policy & Control Effectiveness**  
-  Test whether interventions (pricing, staffing, cybersecurity controls) actually reduce volatility.  
-
-- **Adaptive Experimentation**  
-  Let thresholds self-learn with Cognize to handle non-stationary environments.  
-
-- **Cross-Domain Examples**  
-  - **Pharma**: drug forecast vs prescriptions  
-  - **Finance**: budget vs spend  
-  - **Cybersecurity**: expected vs observed traffic  
-  - **Retail**: sales vs forecast  
-  - **Energy**: demand vs supply balance  
+- **Detection Engine**
+  - Native drift–threshold logic with memory (`Θ`, `E`).
+  - EWMA adaptive thresholds.
+  - Enterprise plug-ins: register custom θ models.
+- **Cognize Integration (optional)**
+  - Policy meta-manager (`ε`-greedy, shadow evaluation, safe promotion).
+  - Graph-coupled agents for multi-segment interaction.
+- **Epistemic Diagnostics**
+  - Scope stability score.
+  - Population Stability Index (PSI).
+  - ETA to persistent breach.
+  - Pareto loss concentration.
+  - Weekend vs weekday dynamics.
+- **Streamlit App**
+  - Upload data (`Date, Forecast, Actual, Unit_Cost`).
+  - Interactive toggles for detection model, policies, diagnostics.
+  - Instant KPIs + visualization.
 
 ---
 
-## Quick Start  
+## Installation
 
 ```bash
-pip install qsi
+git clone https://github.com/your-org/QSI.git
+cd QSI
+pip install -r requirements.txt
 ```
+
+Run the interactive app:
+
+```bash
+streamlit run app.py
+```
+
+---
+
+## Quick Start
 
 ```python
-import pandas as pd
-from qsi import QSIEngine, QSIConfig, EpistemicAnalytics, EpistemicConfig
+from qsi import QSIEngine, QSIConfig, generate_dummy
 
-# Load your data
-df = pd.read_csv("your_timeseries.csv")
+# Generate sample dataset
+df = generate_dummy(days=60)
 
-# Run core QSI engine
-cfg = QSIConfig()
-out, report = QSIEngine(cfg).analyze(df)
+# Configure engine
+cfg = QSIConfig(use_ewma=True, ewma_alpha=0.3, ewma_k=3.0)
 
-# Add board-level diagnostics
-epicfg = EpistemicConfig()
-diagnostics = EpistemicAnalytics.enrich(out, epicfg)
+# Analyze
+engine = QSIEngine(cfg)
+df_out, report = engine.analyze(df)
 
 print(report["summary"])
-print(diagnostics["epistemic"])
 ```
 
 ---
 
-## Design Philosophy  
+## Use Cases
 
-- **Apple Simplicity** → one-click install, clean API, clear defaults.  
-- **McKinsey Rigor** → quantified insights, economic framing, board-ready diagnostics.  
-- **Agnostic Intelligence** → no sector lock-in; QSI applies wherever forecasts meet outcomes.  
+QSI is **domain-agnostic**. Any system with forecasts, expectations, or baselines can use it:
+
+- **Supply Chain & Procurement**  
+  Detect yield drifts, quantify preventable losses, stress-test contracts.
+
+- **Finance & Risk**  
+  Monitor volatility, detect abnormal deviations, quantify exposure.
+
+- **Pharma & Healthcare**  
+  Track demand–supply misalignments, prevent stockouts, stabilize trials.
+
+- **Cybersecurity**  
+  Detect anomalies in traffic, breach probabilities, stability under attack.
+
+- **Infrastructure & Energy**  
+  Forecast vs actual load monitoring, prevent cascading failures.
 
 ---
 
-## License  
+## Outputs
 
-MIT License.  
-Use freely, adapt responsibly, contribute if you extend.  
+- **KPI Strip**: total preventable loss, rupture count, mean drift, scope score, PSI.  
+- **Visualization**: drift vs threshold, rupture markers, volatility bands, segment heatmaps.  
+- **Diagnostics**: JSON report (economics + epistemic alignment).  
 
 ---
-*QSI: Governing volatility, everywhere.*  
 
+## Repo Structure
 
+```
+QSI/
+│── datasets/         # sample CSVs
+│── qsi/              # engine + epistemic modules
+│── tests/            # test scripts
+│── app.py            # Streamlit dashboard
+│── README.md         # executive overview
+│── USER_GUIDE.md     # step-by-step usage
+│── requirements.txt
+│── QSI_logo.png
+```
+
+---
+
+## License
+
+Apache 2.0 — free for research and commercial use with attribution.
+
+---
+
+<p align="center">
+  <i>QSI — from volatility to intelligence.</i>
+</p>
