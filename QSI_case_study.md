@@ -1,98 +1,72 @@
-# Case Study — Rupture Detector: Quantifying and Reducing Operational Drift in Agricultural Supply Chains
+# Case Study — Rupture Detector: Quantifying and Reducing Operational Drift in an Agricultural Supply Chain
 
 ## Executive Summary
-
-Hidden operational drifts in procurement processes routinely lead to **silent financial losses** across agricultural and food supply chains. Through field deployment at a Hyderabad-based rice supply chain, the **Rupture Detector** system demonstrated:
-
-- **₹30,857 in preventable losses detected over 61 days**.
-- **Daily preventable loss equivalent to 1.15% of spend**, aligning with global inefficiency norms.
-- **71% of losses concentrated within 20% of operational days**, enabling targeted interventions.
-- **Real-time rupture alerting** unlocking actionable day-level decisions for operational managers.
-
-When benchmarked against global supply chain inefficiency trends (6–20% revenue leakage due to drift and volatility), Rupture Detector provides a **measurable, actionable, and low-latency mitigation system**.
+Using day-level procurement data from a Hyderabad rice supply chain over **61 days**, the Rupture Detector surfaced **₹31,009** in **preventable losses** clustered in **7 rupture days**. 
+Average daily spend was **₹46,957**, with losses equal to **1.08% of total spend**. Drift is **heavy‑tailed**: all financial loss was concentrated in **7/61 days (11.5%)**.
+The system enables **targeted intervention** on spike days while leaving normal operations untouched.
 
 ---
 
-## 1. Business Context and Problem Definition
-
-### Industry Landscape:
-- **94% of companies report losses** due to supply chain disruptions.
-- Average **6–20% revenue loss** reported globally due to forecast inaccuracy and operational drift.
-- Forecast smoothing techniques (e.g., Holt-Winters, moving averages) fail to capture **short-term, preventable drift effects**.
-
-### Problem Statement:
-- Absence of **day-level visibility into drift-induced preventable losses**.
-- Inability to quantify **operational inefficiency in monetary terms**.
-
-**Business Objective:** Develop a low-overhead, high-visibility rupture detection system enabling day-to-day actionability, with **₹ loss quantification per rupture occurrence**.
+## 1) Business Context & Objective
+- Procurement variability at the day level creates **silent leakage** that rarely appears in monthly averages.
+- Objective: **detect and price day-level drift**, alert on **true rupture** (drift > Θ), and quantify **₹ loss** attributable to rupture events.
 
 ---
 
-## 2. Field Deployment: Hyderabad Rice Supply Chain
+## 2) Deployment & Data
+| Parameter | Value |
+|---|---|
+| Commodity | Sona Masoori rice (25kg unit bags) |
+| Location | Hyderabad (franchise-level procurement) |
+| Period | May–June 2025 (**61 days**) |
+| Data fields | Forecast, Actual, Unit Cost |
+| Stack | CSV backend + QSI processing + lightweight UI |
 
-| Deployment Parameter | Value |
-|------------------------|--------|
-| **Commodity Focus** | Sona Masoori Rice (25kg unit bags) |
-| **Test Duration** | 61 operational days (May–June) |
-| **Daily Procurement Spend** | ~₹44,000/day |
-| **Unit Procurement Cost** | ₹40/25kg bag (₹1.6/kg baseline) |
-| **Dataset Source** | Franchise-level procurement records |
-
----
-
-## 3. System Architecture
-- **Adaptive Thresholding (Theta Logic):** Causal detection based on accumulated operational drift.
-- **Volatility Awareness (EWMA):** Non-intrusive secondary signal for trend monitoring.
-- **Loss Computation Logic:** `Loss = Delta x Unit Cost`, only activated on true rupture days.
-- **Deployment Stack:** Lightweight Streamlit front-end, CSV-based backend, zero infrastructure dependency.
+**Spend model:** `daily_spend = Actual × Unit_Cost`. Loss is computed **only on rupture days** as `loss = drift × Unit_Cost` with `drift = |Forecast − Actual|`.
 
 ---
 
-## 4. Results: Operational and Financial Impact
-
-| Key Metric | Field Outcome |
-|---------------------------|----------------------------|
-| **Total Preventable Loss** | ₹30,857 in 61 days |
-| **Average Daily Loss** | ₹506.66/day |
-| **Loss % of Daily Spend** | 1.15% of daily operational outflow |
-| **Rupture Frequency** | 9.8% of operational days (6/61 days) |
-| **Top 20% Day Loss Share** | 71% of losses occurred in ~12 days |
-
-> **Conclusion:** Significant preventable losses exist **even in commodity stable chains**, with disproportionate clustering of losses on fewer high-impact days — validating Pareto behavior in operational drift.
+## 3) System Logic (QSI)
+- **Θ (Threshold) dynamics**: adaptive limit informed by accumulated misalignment memory **E**.
+- **Rupture condition**: trigger when `drift > Θ`.
+- **Loss accounting**: only on triggers; normal drift carries **no penalty** to avoid false positives.
+- **Probability**: `rupture_prob` ≈ 1 on trigger days; ≈ 0 otherwise.
 
 ---
 
-## 5. Industry Comparison and Contextual Benchmarking
+## 4) Results & Operational Findings
+**Key metrics**
+- **Total preventable loss:** ₹31,009
+- **Avg daily spend:** ₹46,957 (total spend ₹2,864,380)
+- **Loss as % of spend:** **1.08%**
+- **Rupture days:** **7** (all loss concentrated here)
+- **Forecast balance:** **30** over‑forecast vs **18** under‑forecast; **13** on‑target
+- **Drift distribution:** mean **32.30**, std **36.53**, P50 **10**, P75 **50**, P90 **100**, max **120**
+- **MAPE:** 3.52%
 
-| Benchmark Dimension | Industry Standard | Rupture Detector Field Result |
-|-----------------------|--------------------|--------------------------------|
-| **Operational Loss (₹)** | 6–20% inefficiency | 6.9% annualized projection based on ₹30k in 61 days |
-| **Forecasting Errors** | MAPE of 5–15% globally | Real-time rupture detection with drift memory mapping |
-| **Last-Mile Impact %** | 41% cost load (logistics) | Detectable preventable drift = 1.15% of direct procurement cost |
-| **Loss Concentration** | 80/20 Pareto patterns | 71% loss in top 20% days validated |
-
----
-
-## 6. Strategic Implications
-
-✅ **Prevents Revenue Leakage**: Converts unknown drift into quantifiable ₹ value losses.
-
-✅ **Enables Precision Interventions**: Isolates high-risk days, aiding resource and inventory rebalancing.
-
-✅ **Scalable Beyond Rice**: Applicable to perishables, retail replenishment, logistics demand management.
-
-✅ **Zero Disruption Adoption**: Field-tested in **low-tech environments**, requires no backend systems.
-
-✅ **Aligns with Digital Supply Chain Megatrend**: Supports the 86% of executives prioritizing real-time supply chain digitization.
+**Rupture clustering**
+- Ruptures occur as **short, sharp shocks** (see rupture events table below).
+- Loss concentration follows **Pareto** behavior: **100.00%** of total loss sits in the **top 13 days** by loss (**top 20% of the calendar**).
 
 ---
 
-## 7. Conclusion: Business Outcome Summary
+## 5) Rupture Events (Export)
+A machine‑readable export of all rupture events with drift, Θ, probability, and priced loss is included:
+- **File:** `rupture_events.csv`
 
-> The **Rupture Detector System** transforms unseen drift into **quantified, day-level financial savings opportunity**, achieving **real-time ₹ accountability** and **high-value intervention visibility** at the operator level.
+---
 
-### Key Takeaway:
-- **₹30,857 preventable loss uncovered in 61 days** → 1.15% spend leakage visibility → daily managerial decision-making enablement.
+## 6) Strategic Implications
+1. **Targeted mitigation wins**: Focus playbooks on **spike days**—supplier calls, safety stock toggles, or order reslots only when drift breaches Θ.
+2. **Price the risk**: Treat Θ breaches as **priced events** with clear ₹ accountability; fold into vendor scorecards and daily ops checklists.
+3. **No disruption on normal days**: Because loss is only booked on triggers, the system **avoids over‑steering**.
+4. **Scalable template**: The same Θ/E/rupture logic generalizes to perishables, retail replenishment, and logistics variability.
 
-**Recommended for: Agricultural supply chains, retail operations, and logistics networks seeking rapid deployment operational efficiency gains.**
+---
 
+## 7) Conclusion
+Rupture Detector converts day‑level misalignment into **actionable, priced events**. In this Hyderabad deployment, it revealed **₹31,009** of **preventable leakage** over **61 days**, concentrated in **7 shocks**, equating to **1.08%** of spend—precisely where focused interventions pay back.
+
+---
+
+*This report is auto‑generated from the supplied CSVs to ensure every figure is traceable to source data.*
