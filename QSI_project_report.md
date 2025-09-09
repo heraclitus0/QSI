@@ -142,6 +142,14 @@ Statistical tests applied:
 
 ---
 
+**Exhibit F — Rupture timeline: short, sharp shocks with Θ=98.**
+![Rupture Timeline — Drift vs Θ](graphs/rupre_plot.png)  
+**Facts:** Rupture markers flag **7** priced events across **61** days; spikes are brief and high-amplitude.  
+**Decision:** Keep **Base Θ=98** for normal weeks; apply the **policy hook (Θ_policy ≈ 0.85×)** only in policy windows to catch additional, economically material spikes.
+
+---
+
+
 ## 12. Scenario & Sensitivity (Policy‑Calibrated, Directional)
 *Static threshold experiment to bound impact (upper‑bound proxy; actual QSI uses adaptive Θ).*
 
