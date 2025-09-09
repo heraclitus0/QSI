@@ -71,9 +71,9 @@ QSI is **domain-agnostic**. Example applications include:
    - Policy-calibrated thresholds & diagnostics (Scope, PSI, ETA)  
    - Interactive drift vs threshold plots & volatility bands  
 4. **Dive deeper**:  
-   - [Case Study — Hyderabad Pilot](link-to-case-study.pdf)  
-   - [Full Analytical Report](link-to-report.pdf)  
-   - [User Guide](link-to-user-guide.pdf)
+   - [Case Study — Hyderabad Pilot](QSI_case_study.md)  
+   - [Full Analytical Report](QSI_project_report.md)  
+   - [User Guide](USER_GUIDE.md)
 
 
 ---
