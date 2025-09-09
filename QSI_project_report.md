@@ -193,4 +193,3 @@ Statistical tests applied:
 **Data:** `hyderabad_saffron_rice_supply_may_june.csv`; QSI outputs `qsi_results (3).csv`.  
 **Definitions:** Drift = |Forecast − Actual|; Loss = Drift × Unit_Cost when **drift > Θ**; Policy window = May 10–30.  
 **Run settings:** Base Θ=98, α=0.02, c=0.25, σ=5, vol=7d; ε=0.10, promote=1.02, cooldown=20, prob‑slope=6.0; Scope=1.00, PSI=7.99.
-"""
