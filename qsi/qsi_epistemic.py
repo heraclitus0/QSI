@@ -69,7 +69,7 @@ class EpistemicConfig:
 
     # ---- validator (keeps UI inputs safe but everything is overridable) ----
     def validate(self) -> "EpistemicConfig":
-        def clamp(x, lo, hi): 
+        def clamp(x, lo, hi):
             return float(min(max(x, lo), hi))
 
         # normalize quantiles: clamp, unique, sorted
@@ -81,7 +81,8 @@ class EpistemicConfig:
                 continue
         q_clean = sorted(set(q_clean))
         if len(q_clean) == 0:
-            q_clean = [0.05, 0.50, 0.95]  # still dynamic; only as a safety net
+            # still dynamic; just a safety net if user clears everything
+            q_clean = [0.05, 0.50, 0.95]
 
         # normalize weekend days: ints in 0..6, unique & sorted
         wd: List[int] = []
@@ -286,7 +287,7 @@ class EpistemicAnalytics:
             "expiry_estimate_date": expiry_date,
         }
 
-        # Diagnostics: quantiles & windows (QUANTILES NOW FULLY DYNAMIC)
+        # Diagnostics: quantiles & windows (QUANTILES FULLY DYNAMIC)
         def qdict(s: pd.Series, qs: Tuple[float, ...]) -> Dict[str, float]:
             s = pd.to_numeric(s, errors="coerce").dropna()
             labels = [f"q{int(round(q*100)):02d}" for q in qs]
@@ -303,7 +304,7 @@ class EpistemicAnalytics:
             "quantiles_used":     list(cfg.quantiles),
         }
 
-        # ---------------- Alignment block (all dynamic) ----------------
+        # ---------------- Alignment block (dynamic) ----------------
         top_share = EpistemicAnalytics._pareto_share(loss, top_frac=cfg.pareto_top_frac)
         weekend = EpistemicAnalytics._weekend_mask(date, cfg.weekend_days)
         weekday = ~weekend
@@ -324,6 +325,7 @@ class EpistemicAnalytics:
         policy_breakdown: Optional[Dict[str, Any]] = None
         if cfg.policy_col and (cfg.policy_col in df_out.columns):
             pc = df_out[cfg.policy_col].astype(bool)
+
             def econ_slice(mask: pd.Series) -> Dict[str, Any]:
                 sl = df_out[mask]
                 if sl.empty:
@@ -341,6 +343,7 @@ class EpistemicAnalytics:
                     "mean_drift": float(drift_sl.mean()),
                     "std_drift": float(drift_sl.std(ddof=0)),
                 }
+
             policy_breakdown = {
                 "policy_true": econ_slice(pc),
                 "policy_false": econ_slice(~pc),
@@ -363,7 +366,7 @@ class EpistemicAnalytics:
                 severe_g = (pct_err_g >= cfg.severe_pct)
                 by_group[str(g)] = {
                     "n": int(len(sub)),
-                    "ruptures": int(sub["rupture"].sum())),
+                    "ruptures": int(sub["rupture"].sum()),
                     "loss": float(pd.to_numeric(sub["loss"], errors="coerce").fillna(0.0).sum()),
                     "on_target_rate": float(on_t_g.mean()) if len(sub) else 0.0,
                     "severe_rate": float(severe_g.mean()) if len(sub) else 0.0,
