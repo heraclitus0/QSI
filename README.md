@@ -2,7 +2,7 @@
   <img src="QSI_logo.png" alt="QSI Logo" width="120"/>
 </p>
 
-<h1 align="center">QSI — Quantitative Stochastic Intelligence</h1>
+<h1 align="center">Quantitative Stochastic Intelligence</h1>
 
 <p align="center">
   Adaptive rupture detection and epistemic diagnostics for dynamic systems.<br/>
