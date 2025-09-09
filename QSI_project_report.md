@@ -68,7 +68,7 @@ Statistical tests applied:
 | Max Single-Day Drift | **120 units**, flagged correctly during bonus period |
 | High-Drift Periods | Weekends + Policy Days cumulatively explain majority of drift cost |
 
-- ![Rupture Visualization](graphs/rup_plot.png)
+- ![Rupture Visualization](graphs/rupre_plot.png)
 
 ---
 
