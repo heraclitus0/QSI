@@ -1,5 +1,6 @@
 # app.py
 import json
+from dataclasses import fields, is_dataclass
 from pathlib import Path
 
 import numpy as np
@@ -9,15 +10,25 @@ import plotly.graph_objects as go
 import streamlit as st
 from PIL import Image
 
+# Core engine + diagnostics
 from qsi import QSIEngine, QSIConfig, generate_dummy
 from qsi import EpistemicAnalytics, EpistemicConfig
 
-# Try to expose custom model names if exported by your package
+# Try to import optional helpers (present in newer engine versions)
 try:
-    from qsi import list_custom_models
+    from qsi import list_custom_models  # exposed by your engine module
 except Exception:
-    def list_custom_models():
-        return []
+    list_custom_models = None  # gracefully degrade
+
+
+# ---------------- Utilities ----------------
+def dataclass_has_field(cls, name: str) -> bool:
+    """Safe check for dataclass field existence across versions."""
+    try:
+        return is_dataclass(cls) and any(f.name == name for f in fields(cls))
+    except Exception:
+        return False
+
 
 # ---------------- Page & Header ----------------
 st.set_page_config(page_title="QSI", layout="wide")
@@ -39,6 +50,7 @@ with c_logo:
         st.image(Image.open(str(logo_path)), width=54)
     else:
         st.markdown("<div style='padding:4px 0 8px 0; font-weight:600;'>QSI</div>", unsafe_allow_html=True)
+
 
 # ---------------- Data Ingest ----------------
 u_col1, u_col2 = st.columns([4, 1])
@@ -63,7 +75,8 @@ candidate_segments = [c for c in df.columns if c not in ("Date", "Forecast", "Ac
 segment_col = st.selectbox("Segment (optional)", ["None"] + candidate_segments, index=0)
 groupby = None if segment_col == "None" else segment_col
 
-# ---------------- Configuration ----------------
+
+# ---------------- Engine Configuration ----------------
 with st.expander("Detection Model • QSI engine", expanded=False):
     c2, c1, c3 = st.columns(3)
 
@@ -84,51 +97,11 @@ with st.expander("Detection Model • QSI engine", expanded=False):
         seed      = st.number_input("Seed", min_value=0, value=123, step=1)
         use_graph = st.checkbox("Couple segments (graph mode)", value=bool(groupby), disabled=(groupby is None))
 
-# ---- Custom thresholds (enterprise plug-ins) ----
-cognize_respect_custom = True  # safe default even if UI below is skipped or model unsupported
-with st.expander("Custom thresholds (enterprise plug-ins)", expanded=False):
-    custom_names = ["None"] + list_custom_models()
-    chosen = st.selectbox("Model", custom_names, index=0)
-    use_custom = (chosen != "None")
-    custom_params: dict = {}
-
-    if use_custom and chosen == "rolling_quantile":
-        cq1, cq2 = st.columns(2)
-        with cq1:
-            rq_window = st.slider("Window (days)", 3, 120, 14, 1)
-        with cq2:
-            rq_q = st.slider("Quantile q", 0.50, 0.99, 0.80, 0.01)
-        custom_params.update({"window": int(rq_window), "q": float(rq_q)})
-
-    if use_custom and chosen == "window_std_k":
-        wk1, wk2 = st.columns(2)
-        with wk1:
-            wk_window = st.slider("Window (days)", 3, 120, 14, 1)
-        with wk2:
-            wk_k = st.slider("k (σ multiplier)", 0.0, 6.0, 2.5, 0.1)
-        custom_params.update({"window": int(wk_window), "k": float(wk_k)})
-
-    if use_custom:
-        raw_json = st.text_area("Custom params (JSON, optional)", value="", placeholder='{"key": "value"}')
-        if raw_json.strip():
-            try:
-                j = json.loads(raw_json)
-                if isinstance(j, dict):
-                    custom_params.update(j)
-            except Exception as e:
-                st.info(f"Could not parse custom param JSON: {e}")
-
-        cognize_respect_custom = st.checkbox(
-            "Drive Cognize with custom θ", value=True,
-            help="When Cognize is enabled, feed this threshold live."
-        )
-
-# ---------------- Cognize meta-policy ----------------
 with st.expander("Cognize meta-policy (optional, runtime)", expanded=False):
     c4, c5, c6, c7 = st.columns(4)
     with c4:
         use_cognize = st.checkbox("Enable Cognize", value=True,
-                                  help="Turn off to run native/EWMA engine.")
+                                  help="Turn off to run native/EWMA/custom engine.")
     with c5:
         epsilon = st.slider("ε (exploration)", 0.0, 0.5, 0.10, 0.01,
                             help="Higher = explore more candidate policies.", disabled=not use_cognize)
@@ -139,7 +112,6 @@ with st.expander("Cognize meta-policy (optional, runtime)", expanded=False):
         cooldown_steps = st.number_input("Cooldown steps", min_value=1, value=20, step=1,
                                          disabled=not use_cognize)
 
-# ---------------- Advanced (probability • graph) ----------------
 with st.expander("Advanced (probability • graph)", expanded=False):
     a1, a2, a3 = st.columns(3)
     with a1:
@@ -150,9 +122,68 @@ with st.expander("Advanced (probability • graph)", expanded=False):
         graph_damping  = st.slider("Graph damping", 0.0, 1.0, 0.5, 0.05, disabled=(groupby is None))
         max_graph_depth = st.slider("Graph max depth", 0, 3, 1, 1, disabled=(groupby is None))
 
-# --------- Build config + engine (defensive against older QSIConfig) ----------
-supports_custom_fields = "custom_model" in getattr(QSIConfig, "__dataclass_fields__", {})
 
+# ---------------- Custom θ (Enterprise statics via registry) ----------------
+supports_custom_fields = dataclass_has_field(QSIConfig, "custom_model")
+custom_model = None
+custom_params_text = "{}"
+cognize_respect_custom = True
+
+if supports_custom_fields:
+    with st.expander("Custom θ (enterprise plug-ins)", expanded=False):
+        helpmsg = "Use enterprise or bespoke θ models registered in the engine."
+        use_custom = st.checkbox("Use custom θ", value=False, help=helpmsg)
+        available_models = []
+        if list_custom_models:
+            try:
+                available_models = list_custom_models() or []
+            except Exception:
+                available_models = []
+        model_help = ("Select a registered model. "
+                      "Built-ins include: rolling_quantile, window_std_k (if your engine exposes them).")
+        custom_model = st.selectbox(
+            "Custom model", options=(["<none>"] + available_models) if available_models else ["<none>"],
+            index=0, disabled=not use_custom, help=model_help
+        )
+        # JSON params editor (validated)
+        default_json_hint = {
+            "window": 14,  # for rolling models
+            "q": 0.80,     # for rolling_quantile
+            "k": 2.5       # for window_std_k
+        }
+        custom_params_text = st.text_area(
+            "Custom params (JSON)", value=json.dumps(default_json_hint, indent=2),
+            height=140, disabled=not use_custom,
+            help="Provide parameters for your selected model as JSON."
+        )
+
+        # Cognize <-> custom θ cooperation
+        cognize_respect_custom = st.checkbox(
+            "Cognize should respect custom θ (drive live threshold)",
+            value=True, disabled=not (use_custom and use_cognize),
+            help="When ON, Cognize runs using your custom θ at each step."
+        )
+
+        # Normalize <none>
+        if not use_custom or (custom_model in (None, "", "<none>")):
+            custom_model = None
+
+# Parse custom params safely
+custom_params: dict = {}
+if supports_custom_fields and custom_model is not None:
+    try:
+        loaded = json.loads(custom_params_text or "{}")
+        if isinstance(loaded, dict):
+            custom_params = loaded
+        else:
+            st.warning("Custom params must be a JSON object (dict). Ignoring non-dict value.")
+            custom_params = {}
+    except json.JSONDecodeError as e:
+        st.error(f"Invalid JSON for custom params: {e}. Using empty params.")
+        custom_params = {}
+
+
+# ---------------- Build config + engine ----------------
 cfg_kwargs = dict(
     col_segment=groupby,
     base_threshold=float(base), a=float(a), c=float(cval), sigma=float(sigma), seed=int(seed),
@@ -163,26 +194,25 @@ cfg_kwargs = dict(
     graph_damping=float(graph_damping), max_graph_depth=int(max_graph_depth),
 )
 
+# Only include custom fields if this engine supports them
 if supports_custom_fields:
     cfg_kwargs.update({
-        "custom_model": (chosen if ( "None" not in (chosen or "") and chosen ) else None),
-        "custom_params": (custom_params if ("None" not in (chosen or "") and chosen) else {}),
-        "cognize_respect_custom_theta": (bool(cognize_respect_custom)
-                                         if ("None" not in (chosen or "") and chosen) else True),
+        "custom_model": custom_model,
+        "custom_params": custom_params,
+        "cognize_respect_custom_theta": (bool(cognize_respect_custom) if custom_model else True),
     })
-else:
-    if 'None' not in (chosen or "") and chosen:
-        st.warning("This build of QSIConfig does not support custom thresholds. "
-                   "Upgrade qsi_engine.py / __init__.py to enable plug-ins.")
 
 cfg = QSIConfig(**cfg_kwargs)
 engine = QSIEngine(cfg)
+
 
 # ---------------- Epistemic Diagnostics Config ----------------
 with st.expander("Epistemic diagnostics (scope • PSI • ETA)", expanded=False):
     d1, d2, d3 = st.columns(3)
     with d1:
         baseline_window = st.number_input("Baseline window (days)", min_value=5, value=28, step=1)
+        recent_window = st.number_input("Recent window (0=same as baseline)", min_value=0, value=0, step=1)
+        recent_window = None if recent_window == 0 else int(recent_window)
     with d2:
         scope_lo = st.slider("Scope quantile low", 0.0, 0.20, 0.05, 0.01)
         scope_hi = st.slider("Scope quantile high", 0.80, 1.0, 0.95, 0.01)
@@ -200,9 +230,11 @@ epi_cfg = EpistemicConfig(
     expiry_k=int(expiry_k),
     expiry_lookback=int(expiry_lookback),
     min_points_for_trend=int(min_points_for_trend),
+    recent_window=recent_window,
 )
 
-# ---------------- Run Engine (pass overrides, gated) ----------------
+
+# ---------------- Run Engine (with overrides) ----------------
 overrides = {
     # detection
     "use_ewma": bool(use_ewma),
@@ -230,14 +262,14 @@ overrides = {
 
 if supports_custom_fields:
     overrides.update({
-        "custom_model": (chosen if ("None" not in (chosen or "") and chosen) else None),
-        "custom_params": (custom_params if ("None" not in (chosen or "") and chosen) else {}),
-        "cognize_respect_custom_theta": (bool(cognize_respect_custom)
-                                         if ("None" not in (chosen or "") and chosen) else True),
+        "custom_model": custom_model,
+        "custom_params": custom_params,
+        "cognize_respect_custom_theta": (bool(cognize_respect_custom) if custom_model else True),
     })
 
 df_out, report = engine.analyze(df, groupby=groupby, overrides=overrides)
 diag = EpistemicAnalytics.enrich(df_out, epi_cfg)
+
 
 # ---------------- KPI Strip ----------------
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
@@ -257,6 +289,7 @@ kpi(k3, "Mean Drift", f"{report['summary']['mean_drift']:.2f}")
 kpi(k4, "Scope Score", f"{diag['epistemic']['scope_score_0to1']:.2f}")
 kpi(k5, "PSI", f"{diag['epistemic']['psi']:.2f}")
 
+
 # ---------------- Chart Controls ----------------
 c_plot1, c_plot2, c_plot3 = st.columns([1.3, 1, 1])
 with c_plot1:
@@ -266,17 +299,6 @@ with c_plot2:
 with c_plot3:
     ygrid = st.checkbox("Show y-grid", True)
 
-# Optional previews (for overlaying alternate θ lines without switching engine)
-with st.expander("Preview overlays (alt θ)", expanded=False):
-    prev1, prev2 = st.columns(2)
-    with prev1:
-        show_ewma_preview = st.checkbox("Overlay EWMA θ preview", value=False)
-    with prev2:
-        # If custom not supported by running QSIConfig, disable this preview toggle
-        show_custom_preview = st.checkbox(
-            "Overlay Custom θ preview", value=False,
-            disabled=not ("custom_model" in getattr(QSIConfig, "__dataclass_fields__", {}) and 'None' not in (locals().get('chosen') or ""))
-        )
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
@@ -285,77 +307,67 @@ def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
     std = s.rolling(window=window, min_periods=max(2, window // 2)).std(ddof=0)
     return pd.DataFrame({"mean": m, "lo": m - std, "hi": m + std})
 
-def _theta_ewma_preview(drift: pd.Series, alpha: float, k: float) -> pd.Series:
-    mu = drift.ewm(alpha=alpha).mean()
-    var = drift.ewm(alpha=alpha).var()
-    std = np.sqrt(var.fillna(0.0))
-    return (mu + k * std).astype(float)
-
-def _theta_custom_preview(drift: pd.Series, name: str, params: dict) -> Optional[pd.Series]:
-    s = pd.Series(drift).astype(float)
-    if name == "rolling_quantile":
-        win = int(params.get("window", 14)); q = float(params.get("q", 0.80))
-        th = s.rolling(win, min_periods=max(2, win // 2)).quantile(q)
-        return th.fillna(method="backfill").astype(float)
-    if name == "window_std_k":
-        win = int(params.get("window", 14)); kval = float(params.get("k", 2.5))
-        mu = s.rolling(win, min_periods=max(2, win // 2)).mean()
-        std = s.rolling(win, min_periods=max(2, win // 2)).std(ddof=0)
-        return (mu + kval * std).fillna(method="backfill").astype(float)
-    return None
-
 def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date",
                        show_mean_line: bool = True, band_window: int = 7) -> go.Figure:
-    CLR_BAND  = "rgba(255,255,255,0.06)"
-    CLR_DRIFT = "rgba(220,220,220,1.00)"
-    CLR_THETA = "rgba(160,160,160,0.95)"
-    CLR_MEAN  = "rgba(200,200,200,0.55)"
-    CLR_RUPT  = "rgba(232,73,73,1.00)"
-    CLR_EWMA  = "rgba(120,180,255,0.9)"
-    CLR_CUST  = "rgba(120,255,180,0.9)"
+    # Palette tuned for dark theme
+    CLR_BAND  = "rgba(255,255,255,0.06)"   # volatility fill
+    CLR_DRIFT = "rgba(220,220,220,1.00)"   # primary neutral (brighter, 2px)
+    CLR_THETA = "rgba(160,160,160,0.95)"   # muted reference
+    CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
+    CLR_RUPT  = "rgba(232,73,73,1.00)"     # semantic red (ruptures)
 
     band = _rolling_band(frame["drift"], window=int(band_window))
     fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=frame[date_col], y=band["hi"], line=dict(width=0),
-                             showlegend=False, hoverinfo="skip"))
-    fig.add_trace(go.Scatter(x=frame[date_col], y=band["lo"], fill="tonexty", fillcolor=CLR_BAND,
-                             line=dict(width=0), showlegend=False, hoverinfo="skip", name="Volatility"))
+    # Volatility band (±1σ)
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=band["hi"], line=dict(width=0),
+        showlegend=False, hoverinfo="skip"
+    ))
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=band["lo"],
+        fill="tonexty", fillcolor=CLR_BAND,
+        line=dict(width=0), showlegend=False, hoverinfo="skip",
+        name="Volatility"
+    ))
 
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["drift"], mode="lines", name="Drift",
-                             line=dict(width=2, color=CLR_DRIFT)))
+    # Drift
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["drift"],
+        mode="lines", name="Drift",
+        line=dict(width=2, color=CLR_DRIFT)
+    ))
 
-    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["Theta"], mode="lines", name="Θ (live)",
-                             line=dict(width=1.8, color=CLR_THETA)))
+    # Threshold
+    fig.add_trace(go.Scatter(
+        x=frame[date_col], y=frame["Theta"],
+        mode="lines", name="Threshold",
+        line=dict(width=1.5, color=CLR_THETA)
+    ))
 
-    drift = frame["drift"].astype(float)
-    if locals().get("show_ewma_preview"):
-        th_e = _theta_ewma_preview(drift, alpha=float(alpha), k=float(kval))
-        fig.add_trace(go.Scatter(x=frame[date_col], y=th_e, mode="lines", name="Θ (preview • EWMA)",
-                                 line=dict(width=1.2, color=CLR_EWMA, dash="dash")))
-    if locals().get("show_custom_preview") and ('chosen' in locals()) and ('None' not in (chosen or "")):
-        th_c = _theta_custom_preview(drift, chosen, locals().get("custom_params", {}))
-        if th_c is not None:
-            fig.add_trace(go.Scatter(x=frame[date_col], y=th_c, mode="lines",
-                                     name=f"Θ (preview • {chosen})",
-                                     line=dict(width=1.2, color=CLR_CUST, dash="dot")))
-
+    # Rolling mean (optional)
     if show_mean_line:
-        fig.add_trace(go.Scatter(x=frame[date_col], y=band["mean"], mode="lines", name="Mean",
-                                 line=dict(width=1, color=CLR_MEAN, dash="dot"),
-                                 legendgroup="mean", showlegend=True))
+        fig.add_trace(go.Scatter(
+            x=frame[date_col], y=band["mean"],
+            mode="lines", name="Mean",
+            line=dict(width=1, color=CLR_MEAN, dash="dot"),
+            legendgroup="mean", showlegend=True
+        ))
 
+    # Rupture markers
     rupt = frame[frame["rupture"]]
     if not rupt.empty:
-        fig.add_trace(go.Scatter(x=rupt[date_col], y=rupt["drift"], mode="markers", name="Rupture",
-                                 marker=dict(size=7, symbol="x", color=CLR_RUPT)))
+        fig.add_trace(go.Scatter(
+            x=rupt[date_col], y=rupt["drift"],
+            mode="markers", name="Rupture",
+            marker=dict(size=7, symbol="x", color=CLR_RUPT)
+        ))
 
     fig.update_layout(
         margin=dict(l=0, r=0, t=6, b=0),
         legend=dict(orientation="h", x=0, y=1.08),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True if locals().get("ygrid") else False,
-                   gridcolor="rgba(255,255,255,0.06)")
+        yaxis=dict(showgrid=ygrid, gridcolor="rgba(255,255,255,0.06)")
     )
     return fig
 
@@ -378,6 +390,7 @@ hm = fig_segment_heatmap(df_out, groupby)
 if hm is not None:
     st.plotly_chart(hm, use_container_width=True)
 
+
 # ---------------- Details ----------------
 with st.expander("Events", expanded=False):
     st.dataframe(report["events"], use_container_width=True)
@@ -393,9 +406,11 @@ if "graph" in report:
     with st.expander("Graph telemetry", expanded=False):
         st.json(report["graph"], expanded=False)
 
+
 # ---------------- Data Preview ----------------
 with st.expander("Data Preview", expanded=False):
     st.dataframe(df_out.head(30), use_container_width=True)
+
 
 # ---------------- Downloads ----------------
 with st.expander("Download"):
