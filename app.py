@@ -16,7 +16,7 @@ from qsi import EpistemicAnalytics, EpistemicConfig
 
 # Try to import optional helpers (present in newer engine versions)
 try:
-    from qsi import list_custom_models  # exposed by your engine module
+    from qsi import list_custom_models  # exposed by engine module when custom registry is present
 except Exception:
     list_custom_models = None  # gracefully degrade
 
@@ -44,7 +44,7 @@ st.markdown("""
 
 # Brand
 logo_path = Path("QSI_logo.png")
-c_logo, _ = st.columns([0.08, 0.92])
+c_logo, _ = st.columns([1, 11])
 with c_logo:
     if logo_path.exists():
         st.image(Image.open(str(logo_path)), width=54)
@@ -78,7 +78,7 @@ groupby = None if segment_col == "None" else segment_col
 
 # ---------------- Engine Configuration ----------------
 with st.expander("Detection Model • QSI engine", expanded=False):
-    c2, c1, c3 = st.columns(3)
+    c2, c1, c3 = st.columns([3, 3, 2])
 
     # EWMA first so its state can disable native knobs
     with c2:
@@ -133,19 +133,22 @@ if supports_custom_fields:
     with st.expander("Custom θ (enterprise plug-ins)", expanded=False):
         helpmsg = "Use enterprise or bespoke θ models registered in the engine."
         use_custom = st.checkbox("Use custom θ", value=False, help=helpmsg)
+
         available_models = []
         if list_custom_models:
             try:
                 available_models = list_custom_models() or []
             except Exception:
                 available_models = []
+
         model_help = ("Select a registered model. "
-                      "Built-ins include: rolling_quantile, window_std_k (if your engine exposes them).")
+                      "Built-ins commonly include: rolling_quantile, window_std_k.")
         custom_model = st.selectbox(
-            "Custom model", options=(["<none>"] + available_models) if available_models else ["<none>"],
+            "Custom model",
+            options=(["<none>"] + available_models) if available_models else ["<none>"],
             index=0, disabled=not use_custom, help=model_help
         )
-        # JSON params editor (validated)
+
         default_json_hint = {
             "window": 14,  # for rolling models
             "q": 0.80,     # for rolling_quantile
@@ -157,7 +160,6 @@ if supports_custom_fields:
             help="Provide parameters for your selected model as JSON."
         )
 
-        # Cognize <-> custom θ cooperation
         cognize_respect_custom = st.checkbox(
             "Cognize should respect custom θ (drive live threshold)",
             value=True, disabled=not (use_custom and use_cognize),
@@ -194,7 +196,6 @@ cfg_kwargs = dict(
     graph_damping=float(graph_damping), max_graph_depth=int(max_graph_depth),
 )
 
-# Only include custom fields if this engine supports them
 if supports_custom_fields:
     cfg_kwargs.update({
         "custom_model": custom_model,
@@ -273,7 +274,7 @@ diag = EpistemicAnalytics.enrich(df_out, epi_cfg)
 
 # ---------------- KPI Strip ----------------
 st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
-k1, k2, k3, k4, k5 = st.columns([1.2, 1, 1, 1, 1])
+k1, k2, k3, k4, k5 = st.columns([6, 4, 4, 4, 4])
 
 def kpi(col, label, value_text):
     with col:
@@ -291,7 +292,7 @@ kpi(k5, "PSI", f"{diag['epistemic']['psi']:.2f}")
 
 
 # ---------------- Chart Controls ----------------
-c_plot1, c_plot2, c_plot3 = st.columns([1.3, 1, 1])
+c_plot1, c_plot2, c_plot3 = st.columns([3, 2, 2])  # integer weights to avoid layout crashes
 with c_plot1:
     show_mean = st.checkbox("Show rolling mean", True)
 with c_plot2:
@@ -302,7 +303,7 @@ with c_plot3:
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
-    s = y.astype(float)
+    s = pd.to_numeric(y, errors="coerce").fillna(0.0).astype(float)
     m = s.rolling(window=window, min_periods=max(2, window // 2)).mean()
     std = s.rolling(window=window, min_periods=max(2, window // 2)).std(ddof=0)
     return pd.DataFrame({"mean": m, "lo": m - std, "hi": m + std})
