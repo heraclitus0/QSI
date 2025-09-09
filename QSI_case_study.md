@@ -120,3 +120,10 @@ QSI was deployed to turn day‑level procurement noise into **priced, stoppable 
 ---
 
 **Bottom line:** This case confirms the operating thesis—**a few policy‑sensitive spike days cause nearly all leakage**. QSI’s discipline is to **be quiet by default** and **surgical on those days**, converting noise into **priced decisions** that flow directly to **EBITDA**.
+
+
+### Figure — Rupture Timeline (QSI)
+![Rupture timeline — short, high‑amplitude spikes; Θ = 98 baseline](graphs/rupre_plot.png)
+
+*Interpretation:* Ruptures are brief and high‑amplitude. Alerts remain sparse in normal weeks (Θ=98), with spikes concentrated on a few days.
+
