@@ -1,4 +1,4 @@
-# Case Study — QSI in a Restaurant Supply Chain
+# QSI in a Restaurant Supply Chain
 *Hyderabad franchise network · May–June 2025 (61 operational days)*
 
 ---
