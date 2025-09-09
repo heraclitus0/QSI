@@ -1,144 +1,106 @@
-# QSI — Quantitative Stochastic Intelligence
-**Systemic Drift Intelligence & Preventable Volatility Loss Management**
+# QSI — Quantitative Stochastic Intelligence  
 
-[Live Demo](https://rupture-detector-vxcv8twev4y3vcuqzjprnw.streamlit.app/)  
-
-QSI tracks misalignments between forecasted expectations and realized outcomes. It quantifies volatility events where drift becomes costly, flags actionable thresholds, and estimates preventable loss. Unlike static monitoring, QSI applies stochastic intelligence: adaptive thresholds, memory-aware state tracking, and recursive correction dynamics.
-
-**Detailed User Guide:** [Click here to access the full USER_GUIDE.md](./USER_GUIDE.md)
+<img src="https://via.placeholder.com/600x180.png?text=QSI+Logo" alt="QSI Logo" width="600"/>
 
 ---
 
-## SECTION 1 — CORE CAPABILITIES
-- Upload real-world data (Excel/CSV)  
-- Auto-calculate drift variables: Δ(t), E(t), Θ(t)  
-- Identify volatility events when Δ(t) > Θ(t)  
-- Quantify preventable financial loss  
-- Visual diagnostics + downloadable reports  
+> **QSI** is an agnostic decision-intelligence layer.  
+> It governs the gap between **what was expected** and **what actually happened**,  
+> detecting ruptures, quantifying preventable losses, and translating volatility into board-level insight.  
 
 ---
 
-## SECTION 2 — INSTALLATION
+## Why QSI?  
+
+Forecasts fail. Plans drift. Models misalign.  
+QSI does not replace your models — it **sits above them**, continuously monitoring outcomes and exposing where volatility silently erodes value.  
+
+- **Not just anomaly detection** → QSI estimates *time to persistent breach* and *scope of alignment*.  
+- **Not a dashboard** → QSI generates intelligence streams that can be consumed by analysts, boards, or autonomous systems.  
+- **Not domain-locked** → supply chains, finance, pharma, cybersecurity — anywhere drift exists, QSI applies.  
+
+---
+
+## Features  
+
+- **Rupture Analytics**: Detect when deviations exceed adaptive thresholds.  
+- **Economic Impact**: Quantify preventable losses in real currency, not abstract metrics.  
+- **Board Diagnostics**: Scope score, PSI, Pareto loss share, weekend vs weekday multipliers.  
+- **Policy Effectiveness**: Split outcomes by regulatory, operational, or business controls.  
+- **Cognize Integration**: Plug into self-adapting epistemic kernels for intelligent thresholds.  
+- **Custom Models**: Register bespoke enterprise rules for thresholds or diagnostics.  
+
+---
+
+## Use Cases  
+
+QSI is **agnostic** — designed for *any* context where expected vs actual must be reconciled.  
+
+- **Forecast vs Actual Governance**  
+  Ensure your predictive models or planning systems remain aligned with reality.  
+
+- **Volatility & Breach Management**  
+  Anticipate when drifts will breach thresholds and act before losses lock in.  
+
+- **Scenario Translation for Boards**  
+  Convert technical volatility into strategic language — *“X% of days drove Y% of losses.”*  
+
+- **Policy & Control Effectiveness**  
+  Test whether interventions (pricing, staffing, cybersecurity controls) actually reduce volatility.  
+
+- **Adaptive Experimentation**  
+  Let thresholds self-learn with Cognize to handle non-stationary environments.  
+
+- **Cross-Domain Examples**  
+  - **Pharma**: drug forecast vs prescriptions  
+  - **Finance**: budget vs spend  
+  - **Cybersecurity**: expected vs observed traffic  
+  - **Retail**: sales vs forecast  
+  - **Energy**: demand vs supply balance  
+
+---
+
+## Quick Start  
+
 ```bash
-python -m venv venv
-source venv/bin/activate   # On Windows: .\venv\Scripts\activate
-pip install -r requirements.txt
+pip install qsi
+```
+
+```python
+import pandas as pd
+from qsi import QSIEngine, QSIConfig, EpistemicAnalytics, EpistemicConfig
+
+# Load your data
+df = pd.read_csv("your_timeseries.csv")
+
+# Run core QSI engine
+cfg = QSIConfig()
+out, report = QSIEngine(cfg).analyze(df)
+
+# Add board-level diagnostics
+epicfg = EpistemicConfig()
+diagnostics = EpistemicAnalytics.enrich(out, epicfg)
+
+print(report["summary"])
+print(diagnostics["epistemic"])
 ```
 
 ---
 
-## SECTION 3 — FILE STRUCTURE
-```
-├── qsi_core.py                          # Core intelligence engine
-├── app.py                               # Streamlit frontend
-├── tests/                               # Unit tests
-│   └── test_qsi_engine.py
-├── datasets/                            # Input datasets
-│   ├── sample_supply_chain.csv
-│   ├── sample_qsi_log.csv
-│   ├── hyderabad_saffron_rice_supply.csv
-│   └── hyderabad_saffron_rice_qsi_log.csv
-├── graphs/                              # Visuals
-│   ├── drift_vs_threshold.png
-│   ├── boxplot_policy_vs_nonpolicy.png
-│   └── boxplot_weekday_vs_weekend.png
-├── USER_GUIDE.md
-├── qsi_code_logic_doc.md
-├── qsi_case_study.md
-├── qsi_project_report.md
-├── validation_report.md
-├── requirements.txt
-└── LICENSE.txt
-```
+## Design Philosophy  
+
+- **Apple Simplicity** → one-click install, clean API, clear defaults.  
+- **McKinsey Rigor** → quantified insights, economic framing, board-ready diagnostics.  
+- **Agnostic Intelligence** → no sector lock-in; QSI applies wherever forecasts meet outcomes.  
 
 ---
 
-## SECTION 4 — DATA FORMAT
-Your input file must contain:
+## License  
 
-```
-Date        YYYY-MM-DD  
-Forecast    numeric  
-Actual      numeric  
-Unit_Cost   monetary per unit  
-```
+MIT License.  
+Use freely, adapt responsibly, contribute if you extend.  
 
 ---
+*QSI: Governing volatility, everywhere.*  
 
-## SECTION 5 — RUNNING LOCALLY
-```bash
-streamlit run app.py
-```
-Loads the Streamlit interface in your browser.
-
----
-
-## SECTION 6 — PARAMETERS
-Configurable in-app:
-- `c` — Drift amplification factor  
-- `a` — Threshold sensitivity to drift  
-- `Theta0` — Base rupture threshold  
-- `sigma` — Volatility noise scale  
-- `alpha` — EWMA smoothing factor  
-- `k` — Standard deviation multiplier  
-
----
-
-## SECTION 7 — OUTPUTS
-- Δ(t): instantaneous drift  
-- E(t): cumulative misalignment memory  
-- Θ(t): dynamic rupture threshold  
-- Event Table: time-stamped volatility flags + costs  
-- Plots: drift vs threshold overlays  
-- Aggregate preventable loss  
-
-![Drift Visualization](graphs/rup_sup_plot.png)
----
-
-## SECTION 8 — DEPLOYMENT OPTIONS
-- Streamlit Cloud  
-- Docker/VM self-host  
-- ERP dashboard embedding  
-- Local Excel-linked monitor  
-
----
-
-## SECTION 9 — EXTENSIONS
-- REST API for ERP (SAP/NetSuite)  
-- Email/Slack volatility alerts  
-- Multi-team authentication  
-- Multi-sheet ingestion  
-- Real-time ingestion hooks  
-
----
-
-## SECTION 10 — LICENSE
-MIT License. Free for personal and commercial use with attribution.
-
----
-
-## SECTION 11 — AUTHOR
-**Pulikanti Sashi Bharadwaj**  
-📧 bharadwajpulikanti11@gmail.com  
-
----
-
-## SECTION 12 — THEORETICAL FOUNDATION
-QSI operates at the intersection of **control theory, recursive computation, epistemic system design, and stochastic intelligence**. Its core is the regulation of drift under uncertainty, using feedback loops, adaptive thresholds, and memory-aware correction.  
-
-Grounded in:  
-- Dynamic feedback regulation (Kalman, Åström & Murray)  
-- Recursive computability (Soare, Odifreddi)  
-- Second-order observation & closure (von Foerster, Maturana, Varela)  
-- Epistemic drift regulation (Pulikanti, RCC 2025)  
-
-By embedding these traditions, QSI is not just reactive monitoring — it is a **stochastic intelligence layer** capable of sensing when internal models themselves are becoming obsolete.  
-
----
-
-## SECTION 13 — FIELD IMPLEMENTATION
-**Pilot Deployment:**  
-[Read full case study — Rice Supply Chain (Hyderabad)](qsi_project_report.md)  
-
-© 2025 Pulikanti Sashi Bharadwaj. Open-source licensed.  
 
