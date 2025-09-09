@@ -1,4 +1,4 @@
-# Report — QSI: Policy-Calibrated Drift Intelligence for Franchise Procurement Systems
+# QSI: Policy-Calibrated Drift Intelligence for Franchise Procurement Systems
 
 ## Table of Contents
 1. Executive Summary
@@ -68,9 +68,7 @@ Statistical tests applied:
 | Max Single-Day Drift | **120 units**, flagged correctly during bonus period |
 | High-Drift Periods | Weekends + Policy Days cumulatively explain majority of drift cost |
 
-- ![Rupture Visualization](graphs/rupre_plot.png)
-
----
+- ---
 
 ## 7. Scenario Modeling and Sensitivity Testing
 | Scenario | Annualized Loss Reduction |
@@ -97,10 +95,7 @@ Statistical tests applied:
 | **Profitability Drainage Channels** | ₹-denominated rupture tracking directly exposes micro-leakages |
 | **Correctable Drift Vectors** | >70% cost recovery achievable via targeting high-drift days |
 
-- ![Visualization](graphs/boxplot_policy_vs_nonpolicy.png)
-- ![Visualization](graphs/boxplot_weekday_vs_weekend.png)
-
----
+- ---
 
 ## 10. Strategic Business Impact Framework
 - ₹-linked **daily drift-to-loss visibility**
@@ -108,6 +103,19 @@ Statistical tests applied:
 - Scalable to **non-rice commodities** (vegetable, dairy)
 - Aligned with **managerial operational KPIs**
 - Validated via **hard operational data + macro-market context**
+
+
+![Violin — Drift Distribution by Policy Period (QSI System)](graphs/violin_policy_vs_nonpolicy_clean.png)  
+*Density shape and median highlight heavier tails during policy windows.*
+
+![ECDF — Drift by Policy Period (QSI System)](graphs/ecdf_policy_vs_nonpolicy_clean.png)  
+*Policy windows show stochastic dominance over non‑policy days across the full distribution.*
+
+![ECDF — Drift by Day Type (QSI System)](graphs/ecdf_weekday_vs_weekend_clean.png)  
+*In this run, weekday cycles exhibit higher central drift than weekends (median/P75 uplift).*
+
+![Loss Concentration — Lorenz Curve (QSI System)](graphs/lorenz_loss_concentration_clean.png)  
+*Loss is tightly concentrated in a small share of days (Pareto behaviour).*
 
 ---
 
