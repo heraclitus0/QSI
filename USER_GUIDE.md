@@ -1,137 +1,135 @@
+# QSI User Guide
 
-# USER GUIDE – Rupture Detector
+## Introduction
+Quantitative Stochastic Intelligence (QSI) is a diagnostic system for detecting forecast drifts, rupture events, and hidden economic loss. This guide describes how to operate the QSI Streamlit application, interpret its outputs, and configure its advanced controls.
 
-## 1. Overview
-Rupture Detector is a domain-agnostic operational intelligence tool designed to detect forecast-actual drifts and surface preventable loss in real-world systems. It is applicable to any measurable quantity where planned values (forecasts) often diverge from realized outcomes (actuals), converting these deviations into actionable economic insights.
-
-**Example Applications:**
-- Supply Chain Logistics
-- Manufacturing Output Tracking
-- Energy Demand Management
-- Workforce Planning
-- Retail Inventory Dynamics
-- Financial Forecast Monitoring
-
----
-
-## 2. System Features
-- Adaptive drift detection using rolling and memory-based thresholds.
-- Dynamic visualization of operational volatility and rupture events.
-- Quantification of preventable economic loss tied to detected ruptures.
-- Configurable sensitivity parameters for multiple operational contexts.
-- Streamlit-based interactive dashboard for non-technical end users.
+The guide is organized into:
+1. Interface Overview
+2. Configuration Controls
+3. Analysis Outputs
+4. Board-Level Diagnostics
+5. Developer Mode
+6. Use Cases
 
 ---
 
-## 3. Installation Guide
+## 1. Interface Overview
+The Streamlit application provides three panels:
 
-### Prerequisites:
-- Python 3.9+
-- pip
+- **Configuration Panel**: Interactive controls for selecting the analysis engine and adjusting thresholds, probabilities, and policies.  
+- **Analysis Panel**: Visualization of drifts, thresholds, ruptures, and associated losses.  
+- **Diagnostics Panel**: Board-level metrics including scope, stability indices, breach projections, and policy breakdowns.  
 
-### Setup Steps:
-```bash
-git clone https://github.com/heraclitus0/rupture-detector.git
-cd rupture-detector
-pip install -r requirements.txt
-streamlit run app.py
+---
+
+## 2. Configuration Controls
+
+### Engine Selection
+- **Native**: Baseline memory model using static thresholds.  
+- **EWMA**: Thresholds adapt to volatility via Exponentially Weighted Moving Average.  
+- **Cognize**: Advanced epistemic engine with policy management (requires Cognize library).  
+- **Graph Mode**: Cognize extended to multiple segments, with coupling effects between them.  
+
+**Guidance**:  
+- Use *Native* for simple, stable series.  
+- Use *EWMA* for noisy data requiring adaptive smoothing.  
+- Use *Cognize* for complex, adaptive scenarios.  
+- Use *Graph Mode* for multi-segment dependencies.  
+
+### Threshold Parameters (Î)
+- **Base Threshold**: Initial sensitivity to drift.  
+- **a (Sensitivity)**: Degree to which accumulated memory raises the threshold.  
+- **c (Memory Accumulation)**: Rate at which drift compounds in memory.  
+- **Ï (Noise)**: Stochastic fluctuation applied to the threshold.  
+
+**Interpretation**:  
+Threshold determines when a deviation becomes a rupture. Lower thresholds detect smaller deviations; higher thresholds reduce false positives.  
+
+### Rupture Probability
+- **k (Slope)**: Sharpness of the probability curve.  
+- **Midpoint**: Center of the probability curve (rupture probability = 0.5).  
+
+**Interpretation**:  
+Defines how aggressively QSI converts drift margins into rupture probabilities rather than binary signals.  
+
+### EWMA Parameters
+(Available when EWMA mode is selected.)  
+- **Alpha**: Responsiveness of smoothing (0.1 = slow, 0.8 = fast).  
+- **k**: Width of the adaptive band, relative to volatility.  
+
+### Cognize Meta-Policy
+(Available when Cognize is active.)  
+- **Epsilon**: Exploration rate; frequency of testing alternative policies.  
+- **Promote Margin**: Advantage required before promoting a new policy.  
+- **Cooldown Steps**: Minimum interval before switching policies again.  
+
+### Custom Models
+- **Custom Model**: Select an enterprise-defined threshold generator.  
+- **Custom Parameters**: Adjust the parameters of the custom model.  
+- **Respect Custom Î in Cognize**: Determines whether Cognize must follow the enterprise threshold rather than its own.  
+
+---
+
+## 3. Analysis Outputs
+The analysis panel presents:  
+
+- **Drift Curve**: Absolute deviation between forecasts and actuals.  
+- **Threshold Curve (Î)**: Adaptive threshold line.  
+- **Rupture Markers**: Points where drift exceeds threshold.  
+- **Loss Curve**: Estimated monetary loss at rupture points.  
+
+Outputs can be downloaded as CSV (rupture events) or JSON (full report).  
+
+---
+
+## 4. Board-Level Diagnostics
+Metrics are computed by the Epistemic Analytics module.  
+
+- **Scope Score**: Proportion of recent drifts falling within the baseline band.  
+- **Population Stability Index (PSI)**: Degree of distributional shift between baseline and recent drift.  
+- **ETA to Persistent Breach**: Projected time until sustained rupture conditions occur.  
+- **Pareto Loss Share**: Concentration of loss among top X% of days.  
+- **Weekend vs. Weekday Drift**: Relative volatility across calendar segments.  
+- **Policy Breakdown** (if applicable): Comparative drift and loss statistics between policy and non-policy groups.  
+- **Segment Breakdown** (if applicable): Drift and rupture statistics per SKU, region, or segment.  
+
+---
+
+## 5. Developer Mode
+QSI can be used directly as a Python library:
+
+```python
+from qsi import QSIEngine, QSIConfig, generate_dummy
+
+df = generate_dummy(days=60, segments=["SKU-A", "SKU-B"])
+cfg = QSIConfig(use_ewma=True, ewma_alpha=0.2, ewma_k=3.0)
+engine = QSIEngine(cfg)
+df_out, report = engine.analyze(df, groupby="Segment")
+```
+
+Custom threshold models can be registered:
+
+```python
+from qsi.qsi_engine import register_custom_model
+
+def my_model(drift, params, df):
+    return drift.rolling(7).mean() * 1.2
+
+register_custom_model("my_theta", my_model)
 ```
 
 ---
 
-## 4. Data Input Format
+## 6. Use Cases
+QSI is domain-agnostic and adaptable:
 
-### Required Columns:
-| Column | Description |
-|---------|-------------|
-| `Date` | Date or timestamp (string) |
-| `Forecast` | Projected/expected quantity |
-| `Actual` | Realized quantity |
-| `Unit_Cost` | Cost per unit of deviation (currency, resource, or time unit) |
-
-### Example (CSV):
-```csv
-Date,Forecast,Actual,Unit_Cost
-2025-05-01,1000,950,240
-```
-
-### Notes:
-- Data granularity can be **daily**, **hourly**, or **transactional** depending on application.
-- Higher temporal granularity increases sensitivity to micro-ruptures.
+- **Supply Chains**: Detect demand forecast ruptures, safeguard margins.  
+- **Pharmaceuticals**: Monitor deviation in clinical trial outcomes.  
+- **Cybersecurity**: Identify anomalous drifts in access or transaction logs.  
+- **Finance**: Detect regime shifts in trading signals or risk exposures.  
+- **IoT and Sensors**: Real-time rupture detection in sensor networks.  
 
 ---
 
-## 5. Interactive Dashboard – Controls Guide
-
-### Parameter Controls:
-| Control | Purpose |
-|----------|---------|
-| Drift Scaling Factor | Adjusts impact of accumulated drift on rupture threshold. |
-| Rupture Sensitivity | Tunes detection strictness (lower = more sensitive). |
-| Base Threshold | Minimum acceptable drift before adjustments. |
-| Noise Estimate | Filters routine operational noise. |
-| EWMA Alpha | Recent drift weighting (higher alpha = recent data dominance). |
-| Sigma Multiplier | Volatility buffer based on standard deviation control. |
-
-### Outputs:
-- **Rupture Events**: Days flagged as rupture due to drift exceeding adaptive threshold.
-- **Preventable Loss**: Quantified impact (currency or resource units) from unmitigated ruptures.
-- **Drift & Rupture Graphs**: Visualize variance and rupture over time.
-
----
-
-## 6. Interpretation Guidelines
-
-| Output Metric | Interpretation |
-|----------------|----------------|
-| Drift (Forecast - Actual) | Direct measure of operational forecast error |
-| Threshold (Adaptive Θ) | Dynamic tolerance level adjusted for recent volatility |
-| Rupture (Binary Flag) | Indicates operational misalignment needing intervention |
-| Preventable Loss | Economic/resource quantification of unmitigated ruptures |
-
----
-
-## 7. Use Case Scenarios
-
-| Sector | Example Use |
-|---------|-----------------------------|
-| Manufacturing | Compare scheduled vs produced units daily |
-| Energy | Detect demand-response mismatches per hour |
-| Supply Chain | Monitor daily order vs delivery gaps |
-| Human Resources | Forecasted vs actual shift attendance |
-| Retail | Predicted vs actual daily sales or inventory restocking |
-| Financial Ops | Projected vs actual cash flows or expenses |
-
----
-
-## 8. Best Practices
-- Regularly recalibrate **Base Threshold** and **Noise Estimate** based on your operational norms.
-- Use **Rupture Sensitivity** to toggle between conservative and aggressive detection modes.
-- For volatile environments, adjust **EWMA Alpha** higher for responsiveness.
-- Validate **Unit_Cost** per application domain to ensure meaningful preventable loss estimation.
-
----
-
-## 9. Troubleshooting Guide
-
-| Issue | Possible Cause | Recommended Fix |
-|--------|----------------|-----------------|
-| App does not start | Environment misconfiguration | Reinstall requirements, check Python version |
-| File upload fails | Incorrect column naming or file format | Ensure column headers match: Date, Forecast, Actual, Unit_Cost |
-| Unexpected zero loss | Drift not exceeding threshold | Lower sensitivity or review noise threshold |
-| Excessive rupture events | Over-sensitivity or low threshold | Increase base threshold or adjust scaling factor |
-
----
-
-## 10. References and Links
-
-- **GitHub Repository**: [Rupture Detector](https://github.com/heraclitus0/rupture-detector)
-- **Live Demo Deployment**: [Streamlit App](https://rupture-detector-vxcv8twev4y3vcuqzjprnw.streamlit.app/)
-- **Theoretical References**:
-    - Epistemic Control Concepts: RCC, Continuity Theory
-    - Memory-based Drift Detection Literature
-- **License**: MIT – free for academic, personal, and commercial use with attribution.
-
----
-
-© 2025 Pulikanti Sashi Bharadwaj. All rights reserved under the open-source license.
+## Conclusion
+QSI provides an adaptive framework for monitoring, diagnosing, and managing drift in volatile environments. Its design balances interpretability, configurability, and extensibility, enabling application across diverse industries.
