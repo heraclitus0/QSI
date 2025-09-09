@@ -16,7 +16,6 @@ from qsi import EpistemicAnalytics, EpistemicConfig
 try:
     from qsi import list_custom_models
 except Exception:
-    # Fallback: engine will still work; UI will just show "None"
     def list_custom_models():
         return []
 
@@ -86,13 +85,13 @@ with st.expander("Detection Model • QSI engine", expanded=False):
         use_graph = st.checkbox("Couple segments (graph mode)", value=bool(groupby), disabled=(groupby is None))
 
 # ---- Custom thresholds (enterprise plug-ins) ----
+cognize_respect_custom = True  # safe default even if UI below is skipped or model unsupported
 with st.expander("Custom thresholds (enterprise plug-ins)", expanded=False):
     custom_names = ["None"] + list_custom_models()
     chosen = st.selectbox("Model", custom_names, index=0)
     use_custom = (chosen != "None")
     custom_params: dict = {}
 
-    # Model-specific quick knobs for built-ins (if present)
     if use_custom and chosen == "rolling_quantile":
         cq1, cq2 = st.columns(2)
         with cq1:
@@ -109,7 +108,6 @@ with st.expander("Custom thresholds (enterprise plug-ins)", expanded=False):
             wk_k = st.slider("k (σ multiplier)", 0.0, 6.0, 2.5, 0.1)
         custom_params.update({"window": int(wk_window), "k": float(wk_k)})
 
-    # Power-user JSON overrides for any model
     if use_custom:
         raw_json = st.text_area("Custom params (JSON, optional)", value="", placeholder='{"key": "value"}')
         if raw_json.strip():
@@ -120,8 +118,10 @@ with st.expander("Custom thresholds (enterprise plug-ins)", expanded=False):
             except Exception as e:
                 st.info(f"Could not parse custom param JSON: {e}")
 
-        cognize_respect_custom = st.checkbox("Drive Cognize with custom θ", value=True,
-                                             help="When Cognize is enabled, feed this threshold live.")
+        cognize_respect_custom = st.checkbox(
+            "Drive Cognize with custom θ", value=True,
+            help="When Cognize is enabled, feed this threshold live."
+        )
 
 # ---------------- Cognize meta-policy ----------------
 with st.expander("Cognize meta-policy (optional, runtime)", expanded=False):
@@ -150,8 +150,10 @@ with st.expander("Advanced (probability • graph)", expanded=False):
         graph_damping  = st.slider("Graph damping", 0.0, 1.0, 0.5, 0.05, disabled=(groupby is None))
         max_graph_depth = st.slider("Graph max depth", 0, 3, 1, 1, disabled=(groupby is None))
 
-# Build config + engine
-cfg = QSIConfig(
+# --------- Build config + engine (defensive against older QSIConfig) ----------
+supports_custom_fields = "custom_model" in getattr(QSIConfig, "__dataclass_fields__", {})
+
+cfg_kwargs = dict(
     col_segment=groupby,
     base_threshold=float(base), a=float(a), c=float(cval), sigma=float(sigma), seed=int(seed),
     use_ewma=bool(use_ewma), ewma_alpha=float(alpha), ewma_k=float(kval),
@@ -159,11 +161,21 @@ cfg = QSIConfig(
     epsilon=float(epsilon), promote_margin=float(promote_margin), cooldown_steps=int(cooldown_steps),
     prob_k=float(prob_k), prob_mid=float(prob_mid),
     graph_damping=float(graph_damping), max_graph_depth=int(max_graph_depth),
-    # custom plugin bits
-    custom_model=(chosen if use_custom else None),
-    custom_params=(custom_params if use_custom else {}),
-    cognize_respect_custom_theta=(bool(cognize_respect_custom) if use_custom else True),
 )
+
+if supports_custom_fields:
+    cfg_kwargs.update({
+        "custom_model": (chosen if ( "None" not in (chosen or "") and chosen ) else None),
+        "custom_params": (custom_params if ("None" not in (chosen or "") and chosen) else {}),
+        "cognize_respect_custom_theta": (bool(cognize_respect_custom)
+                                         if ("None" not in (chosen or "") and chosen) else True),
+    })
+else:
+    if 'None' not in (chosen or "") and chosen:
+        st.warning("This build of QSIConfig does not support custom thresholds. "
+                   "Upgrade qsi_engine.py / __init__.py to enable plug-ins.")
+
+cfg = QSIConfig(**cfg_kwargs)
 engine = QSIEngine(cfg)
 
 # ---------------- Epistemic Diagnostics Config ----------------
@@ -190,7 +202,7 @@ epi_cfg = EpistemicConfig(
     min_points_for_trend=int(min_points_for_trend),
 )
 
-# ---------------- Run Engine (pass overrides) ----------------
+# ---------------- Run Engine (pass overrides, gated) ----------------
 overrides = {
     # detection
     "use_ewma": bool(use_ewma),
@@ -201,11 +213,6 @@ overrides = {
     "c": float(cval),
     "sigma": float(sigma),
     "seed": int(seed),
-
-    # custom plugins
-    "custom_model": (chosen if use_custom else None),
-    "custom_params": (custom_params if use_custom else {}),
-    "cognize_respect_custom_theta": (bool(cognize_respect_custom) if use_custom else True),
 
     # cognize
     "use_cognize": bool(use_cognize),
@@ -220,6 +227,15 @@ overrides = {
     "graph_damping": float(graph_damping),
     "max_graph_depth": int(max_graph_depth),
 }
+
+if supports_custom_fields:
+    overrides.update({
+        "custom_model": (chosen if ("None" not in (chosen or "") and chosen) else None),
+        "custom_params": (custom_params if ("None" not in (chosen or "") and chosen) else {}),
+        "cognize_respect_custom_theta": (bool(cognize_respect_custom)
+                                         if ("None" not in (chosen or "") and chosen) else True),
+    })
+
 df_out, report = engine.analyze(df, groupby=groupby, overrides=overrides)
 diag = EpistemicAnalytics.enrich(df_out, epi_cfg)
 
@@ -256,7 +272,11 @@ with st.expander("Preview overlays (alt θ)", expanded=False):
     with prev1:
         show_ewma_preview = st.checkbox("Overlay EWMA θ preview", value=False)
     with prev2:
-        show_custom_preview = st.checkbox("Overlay Custom θ preview", value=False, disabled=not use_custom)
+        # If custom not supported by running QSIConfig, disable this preview toggle
+        show_custom_preview = st.checkbox(
+            "Overlay Custom θ preview", value=False,
+            disabled=not ("custom_model" in getattr(QSIConfig, "__dataclass_fields__", {}) and 'None' not in (locals().get('chosen') or ""))
+        )
 
 # ---------------- Charts ----------------
 def _rolling_band(y: pd.Series, window: int = 7) -> pd.DataFrame:
@@ -272,7 +292,6 @@ def _theta_ewma_preview(drift: pd.Series, alpha: float, k: float) -> pd.Series:
     return (mu + k * std).astype(float)
 
 def _theta_custom_preview(drift: pd.Series, name: str, params: dict) -> Optional[pd.Series]:
-    # Built-in previews for known plug-ins; unknown custom models are skipped in preview.
     s = pd.Series(drift).astype(float)
     if name == "rolling_quantile":
         win = int(params.get("window", 14)); q = float(params.get("q", 0.80))
@@ -283,88 +302,60 @@ def _theta_custom_preview(drift: pd.Series, name: str, params: dict) -> Optional
         mu = s.rolling(win, min_periods=max(2, win // 2)).mean()
         std = s.rolling(win, min_periods=max(2, win // 2)).std(ddof=0)
         return (mu + kval * std).fillna(method="backfill").astype(float)
-    # Other enterprise-registered models may not be available in this app context
     return None
 
 def fig_drift_vs_theta(frame: pd.DataFrame, date_col: str = "Date",
                        show_mean_line: bool = True, band_window: int = 7) -> go.Figure:
-    # Palette tuned for dark theme
-    CLR_BAND  = "rgba(255,255,255,0.06)"   # volatility fill
-    CLR_DRIFT = "rgba(220,220,220,1.00)"   # primary neutral (brighter, 2px)
-    CLR_THETA = "rgba(160,160,160,0.95)"   # live Threshold
-    CLR_MEAN  = "rgba(200,200,200,0.55)"   # thin mean (optional)
-    CLR_RUPT  = "rgba(232,73,73,1.00)"     # semantic red (ruptures)
-    CLR_EWMA  = "rgba(120,180,255,0.9)"    # preview ewma θ
-    CLR_CUST  = "rgba(120,255,180,0.9)"    # preview custom θ
+    CLR_BAND  = "rgba(255,255,255,0.06)"
+    CLR_DRIFT = "rgba(220,220,220,1.00)"
+    CLR_THETA = "rgba(160,160,160,0.95)"
+    CLR_MEAN  = "rgba(200,200,200,0.55)"
+    CLR_RUPT  = "rgba(232,73,73,1.00)"
+    CLR_EWMA  = "rgba(120,180,255,0.9)"
+    CLR_CUST  = "rgba(120,255,180,0.9)"
 
     band = _rolling_band(frame["drift"], window=int(band_window))
     fig = go.Figure()
 
-    # Volatility band (±1σ)
-    fig.add_trace(go.Scatter(
-        x=frame[date_col], y=band["hi"], line=dict(width=0),
-        showlegend=False, hoverinfo="skip"
-    ))
-    fig.add_trace(go.Scatter(
-        x=frame[date_col], y=band["lo"],
-        fill="tonexty", fillcolor=CLR_BAND,
-        line=dict(width=0), showlegend=False, hoverinfo="skip",
-        name="Volatility"
-    ))
+    fig.add_trace(go.Scatter(x=frame[date_col], y=band["hi"], line=dict(width=0),
+                             showlegend=False, hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=frame[date_col], y=band["lo"], fill="tonexty", fillcolor=CLR_BAND,
+                             line=dict(width=0), showlegend=False, hoverinfo="skip", name="Volatility"))
 
-    # Drift
-    fig.add_trace(go.Scatter(
-        x=frame[date_col], y=frame["drift"],
-        mode="lines", name="Drift",
-        line=dict(width=2, color=CLR_DRIFT)
-    ))
+    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["drift"], mode="lines", name="Drift",
+                             line=dict(width=2, color=CLR_DRIFT)))
 
-    # Live Threshold (whatever engine produced)
-    fig.add_trace(go.Scatter(
-        x=frame[date_col], y=frame["Theta"],
-        mode="lines", name="Θ (live)",
-        line=dict(width=1.8, color=CLR_THETA)
-    ))
+    fig.add_trace(go.Scatter(x=frame[date_col], y=frame["Theta"], mode="lines", name="Θ (live)",
+                             line=dict(width=1.8, color=CLR_THETA)))
 
-    # Optional overlays (computed ad-hoc for comparison)
     drift = frame["drift"].astype(float)
-    if show_ewma_preview:
+    if locals().get("show_ewma_preview"):
         th_e = _theta_ewma_preview(drift, alpha=float(alpha), k=float(kval))
-        fig.add_trace(go.Scatter(
-            x=frame[date_col], y=th_e, mode="lines", name="Θ (preview • EWMA)",
-            line=dict(width=1.2, color=CLR_EWMA, dash="dash")
-        ))
-    if show_custom_preview and use_custom:
-        th_c = _theta_custom_preview(drift, chosen, custom_params)
+        fig.add_trace(go.Scatter(x=frame[date_col], y=th_e, mode="lines", name="Θ (preview • EWMA)",
+                                 line=dict(width=1.2, color=CLR_EWMA, dash="dash")))
+    if locals().get("show_custom_preview") and ('chosen' in locals()) and ('None' not in (chosen or "")):
+        th_c = _theta_custom_preview(drift, chosen, locals().get("custom_params", {}))
         if th_c is not None:
-            fig.add_trace(go.Scatter(
-                x=frame[date_col], y=th_c, mode="lines", name=f"Θ (preview • {chosen})",
-                line=dict(width=1.2, color=CLR_CUST, dash="dot")
-            ))
+            fig.add_trace(go.Scatter(x=frame[date_col], y=th_c, mode="lines",
+                                     name=f"Θ (preview • {chosen})",
+                                     line=dict(width=1.2, color=CLR_CUST, dash="dot")))
 
-    # Rolling mean (optional)
     if show_mean_line:
-        fig.add_trace(go.Scatter(
-            x=frame[date_col], y=band["mean"],
-            mode="lines", name="Mean",
-            line=dict(width=1, color=CLR_MEAN, dash="dot"),
-            legendgroup="mean", showlegend=True
-        ))
+        fig.add_trace(go.Scatter(x=frame[date_col], y=band["mean"], mode="lines", name="Mean",
+                                 line=dict(width=1, color=CLR_MEAN, dash="dot"),
+                                 legendgroup="mean", showlegend=True))
 
-    # Rupture markers
     rupt = frame[frame["rupture"]]
     if not rupt.empty:
-        fig.add_trace(go.Scatter(
-            x=rupt[date_col], y=rupt["drift"],
-            mode="markers", name="Rupture",
-            marker=dict(size=7, symbol="x", color=CLR_RUPT)
-        ))
+        fig.add_trace(go.Scatter(x=rupt[date_col], y=rupt["drift"], mode="markers", name="Rupture",
+                                 marker=dict(size=7, symbol="x", color=CLR_RUPT)))
 
     fig.update_layout(
         margin=dict(l=0, r=0, t=6, b=0),
         legend=dict(orientation="h", x=0, y=1.08),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=ygrid, gridcolor="rgba(255,255,255,0.06)")
+        yaxis=dict(showgrid=True if locals().get("ygrid") else False,
+                   gridcolor="rgba(255,255,255,0.06)")
     )
     return fig
 
