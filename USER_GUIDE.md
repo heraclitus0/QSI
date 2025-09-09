@@ -1,140 +1,133 @@
 # QSI User Guide
 
-Quantitative Stochastic Intelligence (QSI) is an adaptive rupture detection and epistemic diagnostics engine.  
-It integrates native statistical thresholds, EWMA smoothing, and Cognize-based metapolicies into one framework.  
-This guide explains each control, parameter, and output so that users can confidently apply QSI across domains.
+This document provides a structured reference for operating the QSI platform.  
+Every toggle, slider, and parameter is explained in practical terms for decision-makers and analysts.
 
 ---
 
-## 1. Getting Started
+## Getting Started
 
-You can run QSI in two modes:
-- **Streamlit App**: Upload your dataset (`Date, Forecast, Actual, Unit_Cost`) and configure detection interactively.  
-- **Python API**: Import QSI in your own scripts.
+1. **Upload Data**: Provide a CSV with the required columns:
+   - `Date`
+   - `Forecast`
+   - `Actual`
+   - `Unit_Cost`
 
-```python
-from qsi import QSIEngine, QSIConfig, generate_dummy
+2. **Run Analysis**: QSI computes drift (the deviation between forecast and actual), evaluates thresholds, flags ruptures, and calculates losses.
 
-cfg = QSIConfig()
-engine = QSIEngine(cfg)
-df_out, report = engine.analyze(df)
-```
-
----
-
-## 2. Detection Engine Modes
-
-- **Native Thresholds**: Base formula with memory accumulation and noise.  
-- **EWMA Threshold**: Exponentially Weighted Moving Average for adaptive smoothing.  
-- **Cognize**: Policy-driven metacontrol for adaptive, self-correcting thresholds.  
-- **Graph Mode**: Coupling across multiple segments (e.g., SKUs, regions).  
+3. **Interpret Outputs**:
+   - **Economics**: Quantifies total loss, over-forecast vs under-forecast, severity, and per-unit efficiency.
+   - **Epistemic**: Diagnostics such as scope score, PSI, and breach ETA.
+   - **Visuals**: Interactive drift vs. threshold chart, volatility bands, rupture markers, and optional heatmaps for segments.
 
 ---
 
-## 3. Threshold Parameters
+## Threshold Parameters
 
-- **Base Threshold (Îâ):** Initial sensitivity to drift.  
-- **a (Sensitivity):** Degree to which accumulated memory (E) raises the threshold.  
-- **c (Memory Accumulation):** Rate at which drift compounds in memory.  
-- **Ï (Noise):** Stochastic fluctuation applied to the threshold.  
+- **Base Threshold**  
+  Initial sensitivity to drift. Higher values make the system less sensitive.
 
-**Interpretation:**  
-- Lower thresholds detect smaller deviations (sensitive but noisy).  
-- Higher thresholds filter noise but risk missing subtle ruptures.  
+- **a (Sensitivity)**  
+  Degree to which accumulated memory raises the threshold.  
+  Controls how past deviations influence current tolerance.
 
----
+- **c (Memory Accumulation)**  
+  Rate at which drift compounds in memory. Higher values increase persistence.
 
-## 4. EWMA Parameters
+- **sigma (Noise)**  
+  Random fluctuation applied to the threshold to simulate uncertainty.  
+  Lower = stable detection; higher = more variability.
 
-- **Î± (Alpha):** Weight given to recent drift values. Closer to 1 â faster adaptation.  
-- **k (Multiplier):** Number of standard deviations applied to define the threshold band.  
-
-**Use Case:** When markets are volatile and require adaptive smoothing.  
-
----
-
-## 5. Cognize Metapolicy
-
-- **Îµ (Exploration):** Probability of exploring new policies.  
-- **Promote Margin:** How much better a candidate policy must perform before adoption.  
-- **Cooldown Steps:** Delay before the same policy is reconsidered.  
-
-**Use Case:** When you want the system to learn which thresholding strategy works best.  
+**Interpretation**:  
+The threshold defines when a deviation becomes a rupture.  
+- Lower thresholds detect smaller deviations but may over-trigger.  
+- Higher thresholds reduce false positives but may miss early warnings.
 
 ---
 
-## 6. Probability Model
+## EWMA (Exponentially Weighted Moving Average)
 
-- **k (Slope):** Controls sharpness of probability curve around threshold.  
-- **Midpoint:** Defines margin at which rupture probability is 50%.  
+- **Enable EWMA**: Uses adaptive smoothing instead of static thresholds.  
+- **Alpha (α)**: The smoothing factor. Lower values = longer memory; higher = faster reaction.  
+- **k**: Multiplier for variability. Larger values make the threshold more tolerant.
 
-**Interpretation:** A steeper slope means âhardâ ruptures. A shallower slope means âsofterâ probability.  
-
----
-
-## 7. Graph Parameters (Multi-Segment)
-
-- **Graph Damping:** Reduces cascade intensity across segments.  
-- **Max Graph Depth:** How far influence propagates across networked nodes.  
-
-**Use Case:** Multi-SKU, multi-region, or multi-asset systems where failures propagate.  
+Use EWMA when trends shift gradually and static thresholds would over-trigger.
 
 ---
 
-## 8. Epistemic Diagnostics
+## Cognize Meta-Policy
 
-QSI integrates board-level analytics for governance and systemic resilience:  
+- **Enable Cognize**: Switch to adaptive intelligence mode.  
+- **Epsilon (ε)**: Exploration rate. Higher values explore more candidate policies.  
+- **Promote Margin**: How much better a candidate must be to replace the current policy.  
+- **Cooldown Steps**: Steps before a newly promoted policy can change again.
 
-- **Scope Score (0â1):** Fraction of recent drift contained within baseline band.  
-- **PSI (Population Stability Index):** Distribution shift indicator.  
-- **ETA (Expiry to Persistent Breach):** Projected time until consistent rupture.  
-- **Pareto Share:** Fraction of loss driven by top X% of days.  
-- **Weekend vs Weekday Multiplier:** Drift skew across calendar effects.  
-
----
-
-## 9. Outputs
-
-- **Drift:** Absolute deviation between forecast and actual.  
-- **Theta (Î):** Applied threshold at each step.  
-- **Rupture:** Binary event when drift > Î.  
-- **Loss:** Economic impact (drift Ã unit cost).  
-- **Report JSON:** Structured summary for downstream systems.  
+Cognize allows self-tuning thresholds and policies during runtime.
 
 ---
 
-## 10. How to Use Each Toggle (Streamlit UI)
+## Graph Mode
 
-- **Use EWMA Threshold:** Enables adaptive smoothing.  
-- **Enable Cognize:** Activates metapolicy learning.  
-- **Use Graph Mode:** Links segments dynamically.  
-- **Show Rolling Mean:** Adds contextual smoothing line.  
-- **Volatility Band Window:** Defines rolling window for Â±1Ï band.  
-- **Y-Grid:** Toggles vertical scale clarity.  
+- **Enable Graph**: Couple multiple segments (e.g., products, regions).  
+- **Graph Damping**: Strength of influence between segments (0 = no influence, 1 = strong coupling).  
+- **Max Graph Depth**: How far influence cascades through the network.
 
----
-
-## 11. Best Practices
-
-- Start with **EWMA** for adaptive baselines.  
-- Enable **Cognize** when facing unpredictable environments.  
-- Use **Graph Mode** only when clear cross-segment dependencies exist.  
-- Review **Economics** and **Epistemic** sections before making board-level decisions.  
+Graph mode models interdependencies across units.
 
 ---
 
-## 12. Example Workflow
+## Rupture Probability
 
-1. Upload CSV (`Date, Forecast, Actual, Unit_Cost`).  
-2. Select segmentation column if applicable.  
-3. Choose detection model (Native, EWMA, Cognize).  
-4. Tune threshold, memory, and noise parameters.  
-5. Analyze rupture events, losses, and diagnostics.  
-6. Export CSV/JSON for reporting or enterprise integration.  
+- **k (Slope)**: Sharpness of the probability curve.  
+- **Midpoint**: Margin value where rupture probability is 50%.
+
+This converts drift vs. threshold into a probability, useful for risk calibration.
 
 ---
 
-## 13. Disclaimer
+## Epistemic Diagnostics
 
-QSI is an adaptive intelligence engine. Its outputs depend on configuration and data quality.  
-For mission-critical environments (e.g., healthcare, finance, infrastructure), validate before deployment.  
+- **Baseline Window**: Number of days used to define “normal” drift.  
+- **Recent Window**: Size of the recent comparison slice (default = baseline size).  
+- **Scope Quantiles**: Defines the “in-scope” band of drift relative to baseline.  
+- **PSI Bins**: Granularity for Population Stability Index (drift distribution shifts).  
+- **ETA Parameters**:  
+  - *Consecutive Breaches (k)*  
+  - *Lookback Window*  
+  - *Min Points for Trend*  
+
+Diagnostics provide board-level insight into stability, breach risk, and systemic drift.
+
+---
+
+## Interpretation Framework
+
+1. **Economics Panel**  
+   Shows how much loss drift caused, broken into categories:
+   - Over-forecast vs. under-forecast
+   - On-target vs. severe deviations
+   - Per-unit efficiency
+
+2. **Epistemic Panel**  
+   Shows systemic health:
+   - Scope score (0–1)  
+   - PSI (distribution shift)  
+   - ETA to persistent breach  
+   - Expiry date estimate  
+
+3. **Charts**  
+   - **Drift vs. Threshold**: Tracks deviations and rupture points.  
+   - **Volatility Bands**: Show rolling variability.  
+   - **Segment Heatmap**: Segment-level rupture probabilities.
+
+---
+
+## Practical Use Cases
+
+QSI is domain-agnostic and applicable across industries:
+
+- **Pharma Supply Chains**: Monitor forecast vs. actual drug demand.  
+- **Manufacturing**: Detect deviations in production throughput.  
+- **Finance**: Track risk breaches in portfolio models.  
+- **Cybersecurity**: Detect anomalies in network traffic baselines.  
+- **Retail**: Align demand forecasting with sales outcomes.  
