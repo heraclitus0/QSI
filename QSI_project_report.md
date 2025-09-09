@@ -111,24 +111,28 @@ This system closes the gap by providing **daily ₹‑quantifiable rupture trigg
 ---
 
 ## 11. Evidence Exhibits — Action, Facts, Decision
-**Exhibit A — Policy windows shift drift across the full distribution. Tighten Θ only then.**  
-**Facts:** Median **10 → 50**; P75 **30 → 80**; Mean **21.0 → 53.8**.  
-**Decision:** Pre‑schedule **Θ_policy ≈ 0.85×** Base Θ (≈ **83–85**) during ration/bonus windows; run the rupture‑day SOP only when policy risk is active.
 
-**Exhibit B — Policy weeks have heavier tails. Be spike‑ready.**  
-**Decision:** In policy weeks, reduce **cooldown 20 → 10**, confirm secondary supplier capacity, and keep SOP on standby.
+## Distribution Shift (Policy vs Non‑Policy)
+![ECDF — Policy vs Non‑Policy](graphs/ecdf_policy_vs_nonpolicy_clean.png)
 
-**Exhibit C — This run: weekdays carry higher central drift. Staff to weekday peaks.**  
-**Decision:** Bias staffing and supplier lanes toward **weekday resilience**; **re‑check quarterly**.
+**Facts:** Median **10 → 50**, P75 **30 → 80**, mean **21.0 → 53.8** (policy vs non‑policy).  
+**Decision:** Pre‑schedule a **Policy profile** (Θ ≈ **83–85**).
 
-**Exhibit D — Loss is fully concentrated in 7 of 61 days. Optimize for precision.**  
-**Decision:** Focus management effort on **spike days only**; tie vendor scorecards to **(breach frequency × ₹ loss)**, not average error.
+---
 
-**Exhibit E — Rupture tickets are ₹4.6–₹5.6k. Use them as the unit of action.**  
-**Decision:** Use the ledger for **ops debriefs**, **vendor negotiations** (rate/volume reallocations), and **finance accruals**.
+## Loss Concentration
+![Lorenz — Loss Concentration](graphs/lorenz_loss_concentration_clean.png)
 
-**Exhibit F — Rupture timeline: short, sharp shocks with Θ=98.**  
-**Decision:** Keep **Base Θ=98** for normal weeks; apply the **policy profile (Θ ≈ 83–85)** during policy windows.
+**Facts:** **100%** of preventable loss sits in **7/61** days.  
+**Decision:** Focus management on **spike days**; score vendors on **breach × ₹ loss**.
+
+---
+
+## What It Looks Like Operationally — Timeline
+![Rupture Timeline — Drift vs Θ](graphs/rupre_plot.png)
+
+**Facts:** Normal weeks are quiet at **Θ=98**; policy weeks show **short, high‑amplitude spikes**.  
+**Decision:** Run SOP only on rupture tickets; **no broad process change** required.
 
 ---
 
