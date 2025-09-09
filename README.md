@@ -1,9 +1,24 @@
-# QSI — Quantitative Stochastic Intelligence
+<p align="center">
+  <img src="QSI_logo.png" alt="QSI Logo" width="120"/>
+</p>
 
-[![Streamlit App](https://img.shields.io/badge/Streamlit-Live-brightgreen)](https://zfy-aqshzphzm.streamlit.app/)
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![GitHub last commit](https://img.shields.io/github/last-commit/heraclitus0/qsi)
-[![Visitors](https://hits.sh/github.com/heraclitus0/qsi.svg?style=flat-square)](https://hits.sh/github.com/heraclitus0/qsi/)
+<h1 align="center">Quantitative Stochastic Intelligence</h1>
+
+<p align="center">
+  Adaptive rupture detection and epistemic diagnostics for dynamic systems.<br/>
+  <strong>Policy-calibrated intelligence that learns from volatility.</strong>
+</p>
+
+<p align="center">
+  <a href="https://zfy-aqshzphzm.streamlit.app/">
+    <img src="https://img.shields.io/badge/Streamlit-Live-limegreen" alt="Streamlit App"/>
+  </a>
+  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"/>
+  <a href="https://hits.sh/github.com/heraclitus0/qsi/">
+    <img src="https://hits.sh/github.com/heraclitus0/qsi.svg?style=flat-square" alt="Visitor Count"/>
+  </a>
+</p>
+
 
 ---
 
@@ -31,7 +46,7 @@ Minimal, calibrated, and transparent — QSI surfaces actionable intelligence wi
 
 ## Interface
 
-![QSI Interface](rupre_plot.png)
+![QSI Interface](graphs/rupre_plot.png)
 
 ---
 
