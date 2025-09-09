@@ -10,9 +10,9 @@
 </p>
 
 <p align="center">
-  <a href="https://zfy-aqshzphzm.streamlit.app/">
-    <img src="https://img.shields.io/badge/Streamlit-Live-limegreen" alt="Streamlit App"/>
-  </a>
+<a href="https://zfy-aqshzphzm.streamlit.app/">
+  <img src="https://img.shields.io/badge/Streamlit-Live-limegreen" alt="Streamlit App"/>
+</a>
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License"/>
   <a href="https://hits.sh/github.com/heraclitus0/qsi/">
     <img src="https://hits.sh/github.com/heraclitus0/qsi.svg?style=flat-square" alt="Visitor Count"/>
