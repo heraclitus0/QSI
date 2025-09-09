@@ -1,134 +1,57 @@
-<p align="center">
-  <img src="QSI_logo.png" alt="QSI Logo" width="120"/>
-</p>
+# QSI — Quantitative Stochastic Intelligence
 
-<h1 align="center">Quantitative Stochastic Intelligence</h1>
-
-<p align="center">
-  Adaptive rupture detection and epistemic diagnostics for dynamic systems.<br/>
-  <b>Policy-calibrated intelligence that learns from volatility.</b>
-</p>
+[![Streamlit App](https://img.shields.io/badge/Streamlit-Live-brightgreen)](https://zfy-aqshzphzm.streamlit.app/)
+![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+![GitHub last commit](https://img.shields.io/github/last-commit/heraclitus0/qsi)
+[![Visitors](https://hits.sh/github.com/heraclitus0/qsi.svg?style=flat-square)](https://hits.sh/github.com/heraclitus0/qsi/)
 
 ---
 
 ## Overview
 
-**QSI** (Quantitative Stochastic Intelligence) is a lightweight intelligence engine for analyzing forecast–actual systems under uncertainty.  
-It detects ruptures (large misalignments), estimates preventable losses, and provides epistemic diagnostics on stability, volatility, and systemic resilience.
+QSI is a **decision-intelligence engine** that detects ruptures in forecast vs. actual performance, quantifies preventable losses, and provides **epistemic diagnostics** such as drift, threshold breaches, stability scope, and policy sensitivity.  
 
-QSI is agnostic: it can be deployed anywhere drift matters — from **supply chains** to **finance**, **pharma**, **cybersecurity**, or **infrastructure**.
+It is designed for **board-level clarity** and **field-level adaptability**, aligning with volatile domains ranging from **supply chains** to **finance, cyber, and pharma**.  
+
+Minimal, calibrated, and transparent — QSI surfaces actionable intelligence without black-box opacity.
 
 ---
 
 ## Features
 
-- **Detection Engine**
-  - Native drift–threshold logic with memory (`Θ`, `E`).
-  - EWMA adaptive thresholds.
-  - Enterprise plug-ins: register custom θ models.
-- **Cognize Integration (optional)**
-  - Policy meta-manager (`ε`-greedy, shadow evaluation, safe promotion).
-  - Graph-coupled agents for multi-segment interaction.
-- **Epistemic Diagnostics**
-  - Scope stability score.
-  - Population Stability Index (PSI).
-  - ETA to persistent breach.
-  - Pareto loss concentration.
-  - Weekend vs weekday dynamics.
-- **Streamlit App**
-  - Upload data (`Date, Forecast, Actual, Unit_Cost`).
-  - Interactive toggles for detection model, policies, diagnostics.
-  - Instant KPIs + visualization.
+- **Rupture Detection** — Tracks forecast vs. actual drift, thresholds, and breach events.  
+- **Loss Quantification** — Converts drifts into monetary loss using unit cost.  
+- **Epistemic Diagnostics** — Scope score, PSI, and breach ETA forecasting.  
+- **Cognize Meta-Policy** — Optional adaptive mode with exploration and policy promotion.  
+- **Segment Graphs** — Coupled dynamics across multiple SKUs or regions.  
+- **Dynamic Configurability** — Every knob is exposed for user calibration, no statics hard-coded.  
+- **Custom Models** — Plug in enterprise-specific threshold policies via registry.  
 
 ---
 
-## Installation
+## Interface
 
-```bash
-git clone https://github.com/your-org/QSI.git
-cd QSI
-pip install -r requirements.txt
-```
-
-Run the interactive app:
-
-```bash
-streamlit run app.py
-```
-
----
-
-## Quick Start
-
-```python
-from qsi import QSIEngine, QSIConfig, generate_dummy
-
-# Generate sample dataset
-df = generate_dummy(days=60)
-
-# Configure engine
-cfg = QSIConfig(use_ewma=True, ewma_alpha=0.3, ewma_k=3.0)
-
-# Analyze
-engine = QSIEngine(cfg)
-df_out, report = engine.analyze(df)
-
-print(report["summary"])
-```
+![QSI Interface](rupre_plot.png)
 
 ---
 
 ## Use Cases
 
-QSI is **domain-agnostic**. Any system with forecasts, expectations, or baselines can use it:
+QSI is **domain-agnostic**. Example applications include:  
 
-- **Supply Chain & Procurement**  
-  Detect yield drifts, quantify preventable losses, stress-test contracts.
-
-- **Finance & Risk**  
-  Monitor volatility, detect abnormal deviations, quantify exposure.
-
-- **Pharma & Healthcare**  
-  Track demand–supply misalignments, prevent stockouts, stabilize trials.
-
-- **Cybersecurity**  
-  Detect anomalies in traffic, breach probabilities, stability under attack.
-
-- **Infrastructure & Energy**  
-  Forecast vs actual load monitoring, prevent cascading failures.
+- **Supply Chains** — Prevent procurement losses by catching over/under-forecast drifts early.  
+- **Finance** — Stress-test trading strategies against volatility thresholds.  
+- **Healthcare & Pharma** — Detect demand misalignments in critical drug or equipment supply.  
+- **Cybersecurity** — Monitor deviations in expected traffic or anomaly baselines.  
+- **Operations & Strategy** — Track policy adherence, systemic drift, and rupture clusters.  
 
 ---
 
-## Outputs
+## Disclaimer
 
-- **KPI Strip**: total preventable loss, rupture count, mean drift, scope score, PSI.  
-- **Visualization**: drift vs threshold, rupture markers, volatility bands, segment heatmaps.  
-- **Diagnostics**: JSON report (economics + epistemic alignment).  
-
----
-
-## Repo Structure
-
-```
-QSI/
-│── datasets/         # sample CSVs
-│── qsi/              # engine + epistemic modules
-│── tests/            # test scripts
-│── app.py            # Streamlit dashboard
-│── README.md         # executive overview
-│── USER_GUIDE.md     # step-by-step usage
-│── requirements.txt
-│── QSI_logo.png
-```
+QSI outputs are **calibration-dependent**.  
+The toggles and parameters exist for a reason: to adapt the system to the volatility profile of your domain.  
+Misuse without domain calibration may lead to misleading results.  
 
 ---
 
-## License
-
-Apache 2.0 — free for research and commercial use with attribution.
-
----
-
-<p align="center">
-  <i>QSI — from volatility to intelligence.</i>
-</p>
