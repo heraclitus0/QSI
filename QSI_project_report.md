@@ -158,6 +158,7 @@ This system closes the gap by providing **daily ₹‑quantifiable rupture trigg
 | **80** | **11** | **₹50,679** | **+3 days**, ~**₹10,517** extra captured during policy |
 
 **Implication:** Maintain **Base Θ=98**; in **policy windows**, dip to **80–85** to capture more without noise flood.
+*QSI’s probabilistic rupture gates adaptively lower thresholds in policy weeks — pre-empting shocks rather than reacting post-loss.*
 
 ---
 
