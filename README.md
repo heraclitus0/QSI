@@ -64,7 +64,7 @@ QSI is **domain-agnostic**. Example applications include:
 
 ## Quick Start
 
-1. **Try it live**: [Launch QSI on Streamlit](https://zfy-aqshzphzm.streamlit.app/)  
+1. **Try it live**: [Launch QSI on Streamlit](https://zkvyksd6zuzfyaqshzphzm.streamlit.app/)  
 2. **Upload your data**: CSV with columns → `Date, Forecast, Actual, Unit_Cost`.  
 3. **Explore outputs**:  
    - Ruptures flagged with drift × cost loss quantification  
