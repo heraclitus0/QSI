@@ -84,11 +84,12 @@ This system closes the gap by providing **daily ₹‑quantifiable rupture trigg
 
 ---
 
-## 8. Policy and Market Dynamics — Data‑Supported Alignment
-- **Policy incentives:** ration dumps and bonus cycles suppress prices but **amplify drift**.  
-- **Empirical link:** policy‑period drift distribution shifts **2–3×** to the right (median **10 → 50**, P75 **30 → 80**, mean **21.0 → 53.8**).  
-- **Outcome:** Price reductions did **not** translate to efficiency; market distortion increased operational misalignment.
+## 8. Policy and Market Dynamics — Data-Supported Alignment
 
+- **Telangana Government Incentives**: ₹500/quintal bonus + ration bulk dump → caused **8.3% price suppression** but **2.5× drift amplification** ([Deccan Chronicle](https://www.deccanchronicle.com/))
+- **Empirical Data Link**: Drift variance during policy = **61.7 kg/day**, non-policy = **19.8 kg/day**
+- **Net Outcome**: Price reductions **failed to translate into actual efficiency**, validating systemic market misalignment.
+  
 ---
 
 ## 9. Macro‑Economic Relevance — Theory‑to‑Field Validation
