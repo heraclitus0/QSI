@@ -1,5 +1,9 @@
-# QSI in a Restaurant Supply Chain
-*Hyderabad franchise network · May–June 2025 (61 operational days)*
+<p align="left">
+  <img src="QSI_logo.png" alt="QSI Logo" width="60"/>
+</p>
+
+<h1 align="center">QSI in a Restaurant Supply Chain</h1>
+<h3 align="center">Hyderabad franchise network · May–June 2025 (61 operational days)</h3>
 
 ---
 
