@@ -62,7 +62,7 @@ Use EWMA when trends shift gradually and static thresholds would over-trigger.
 - **Promote Margin**: How much better a candidate must be to replace the current policy.  
 - **Cooldown Steps**: Steps before a newly promoted policy can change again.
 
-Cognize allows self-tuning thresholds and policies during runtime also enables graph based utility.
+Cognize allows self-tuning thresholds and policies during runtime.
 
 ---
 
