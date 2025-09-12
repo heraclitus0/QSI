@@ -57,12 +57,12 @@ Use EWMA when trends shift gradually and static thresholds would over-trigger.
 
 ## Cognize Meta-Policy
 
-- **Enable Cognize**: Switch to adaptive intelligence mode.  
+- **Enable Cognize**: Switch to adaptive intelligence mode.
 - **Epsilon (ε)**: Exploration rate. Higher values explore more candidate policies.  
 - **Promote Margin**: How much better a candidate must be to replace the current policy.  
 - **Cooldown Steps**: Steps before a newly promoted policy can change again.
 
-Cognize allows self-tuning thresholds and policies during runtime.
+Cognize allows self-tuning thresholds and policies during runtime also enables graph based utility.
 
 ---
 
