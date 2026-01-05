@@ -38,7 +38,7 @@
 - **Distribution shift in policy weeks:** non‑policy → policy medians **10 → 50**, P75 **30 → 80**, means **21.0 → 53.8**.  
 - **Interpretation:** Base Θ = 98 is appropriate for normal weeks. A temporary ~15% tightening in policy weeks is justified to intercept the economically material middle of the shifted distribution while remaining within alert capacity.
 
-### Figure 1. Rupture Timeline (optional)
+### Figure 1. Rupture Timeline 
 ![Rupture timeline — Θ = 98 baseline](graphs/rupre_plot.png)
 *Ruptures are brief and high‑amplitude; alerts are sparse in normal weeks.*
 
